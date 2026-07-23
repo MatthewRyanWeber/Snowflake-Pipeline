@@ -46,10 +46,14 @@ class SnowflakeSink:
             return 0
         # Fast path: write_pandas stages the batch as parquet and COPYs it — far faster than
         # row-by-row INSERT (which caps out near a few hundred rows/s on a wide table).
+        # Check BOTH deps up front (pandas import succeeding but pyarrow missing would fail
+        # inside write_pandas, past an import-only guard).
         try:
-            return self._write_pandas(table, rows)
+            import pandas  # noqa: F401
+            import pyarrow  # noqa: F401
         except ImportError:
             return self._write_insert(table, rows)
+        return self._write_pandas(table, rows)
 
     def _write_pandas(self, table: str, rows: list[dict]) -> int:
         import pandas as pd

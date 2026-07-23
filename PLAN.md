@@ -1,8 +1,13 @@
 # Snowflake Pipeline — Build Plan
 
-**Purpose:** A portfolio-grade, governance-aware Snowflake analytics pipeline whose
-features map 1:1 onto the *Sr Snowflake Data Engineer* JD (NYC). Built so you can demo a
-real, running solution and speak to every bullet in an interview.
+> **Note:** this is the original build plan. The delivered scope later narrowed to a
+> **data-movement pipeline** (ingest → mask → load → structure). The optional analytics
+> pieces mentioned below (Snowpark aggregation, reporting/BI views) were intentionally
+> removed; the pipeline moves and structures data, and analytics is left to the BI layer.
+
+**Purpose:** A portfolio-grade, governance-aware Snowflake data pipeline whose features map
+onto a *Sr Snowflake Data Engineer* JD (NYC). Built so you can demo a real, running solution
+and speak to the native-object bullets in an interview.
 
 **How to use this doc:** it lives in the repo root. Take one phase at a time. Each phase has a
 goal, tasks, deliverables, and acceptance criteria. Don't run them all at once — build →

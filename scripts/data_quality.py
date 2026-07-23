@@ -29,8 +29,11 @@ CHECKS = {
     "dim_location region set":    f"SELECT COUNT(*) FROM {DB}.MARTS.DIM_LOCATION WHERE region IS NULL",
     "fact.payer_sk FK valid":     f"SELECT COUNT(*) FROM {DB}.MARTS.FACT_ENCOUNTER f LEFT JOIN {DB}.MARTS.DIM_PAYER d ON d.payer_sk=f.payer_sk WHERE f.payer_sk IS NOT NULL AND d.payer_sk IS NULL",
     "fact.paid <= charged":       f"SELECT COUNT(*) FROM {DB}.MARTS.FACT_ENCOUNTER WHERE paid_amount > total_charge",
-    "RAW.ssn masked":             f"SELECT COUNT(*) FROM {DB}.RAW.PATIENTS_CSV WHERE ssn IS NOT NULL AND ssn NOT LIKE 'XXX-XX-%'",
-    "RAW.phone masked":           f"SELECT COUNT(*) FROM {DB}.RAW.PATIENTS_CSV WHERE phone IS NOT NULL AND phone NOT LIKE '(XXX) XXX-%'",
+    "RAW.ssn masked (loader)":    f"SELECT COUNT(*) FROM {DB}.RAW.PATIENTS_CSV WHERE ssn IS NOT NULL AND ssn NOT LIKE 'XXX-XX-%'",
+    "RAW.phone masked (loader)":  f"SELECT COUNT(*) FROM {DB}.RAW.PATIENTS_CSV WHERE phone IS NOT NULL AND phone NOT LIKE '(XXX) XXX-%'",
+    # STAGING masking is enforced by the UDFs regardless of load path (loader OR Snowpipe).
+    "STAGING.ssn masked (UDF)":   f"SELECT COUNT(*) FROM {DB}.STAGING.PATIENTS WHERE ssn_masked IS NOT NULL AND ssn_masked NOT LIKE 'XXX-XX-%'",
+    "STAGING.phone masked (UDF)": f"SELECT COUNT(*) FROM {DB}.STAGING.PATIENTS WHERE phone_masked IS NOT NULL AND phone_masked NOT LIKE '(XXX) XXX-%'",
 }
 
 
