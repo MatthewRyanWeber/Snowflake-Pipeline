@@ -1,0 +1,48 @@
+# Secrets & credentials — never commit (see CLAUDE.md)
+.env
+.env.*
+*.pem
+*.key
+*.p8
+*.p12
+rsa_key*
+.snowsql/
+snowsql_config
+config/*.local.*
+config/secrets.*
+credentials.*
+*.token
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env312/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Data — keep synthetic data out of git unless explicitly sampled
+data/
+*.csv
+*.parquet
+!tests/**/*.csv
+!docs/**/*.csv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Logs
+logs/
+*.log
