@@ -8,6 +8,7 @@ import logging
 import re
 
 from .masking import mask_row
+from .progress import Progress
 from .watermark import WatermarkStore
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ class LoadResult:
         self.rows_read = 0
         self.rows_written = 0
         self.batches = 0
+        self.total = None
         self.new_watermark = None
         self.dry_run = False
 
@@ -53,8 +55,18 @@ def load_table(source, sink, watermarks: WatermarkStore, table_cfg: dict,
     result = LoadResult(target)
     result.dry_run = dry_run
     since = watermarks.get(name)
-    logger.info("load %s -> %s (hwm_column=%s, since=%s, dry_run=%s)",
-                name, target, hwm_column, since, dry_run)
+
+    # Total up front (if the source can count cheaply) so progress shows % + ETA.
+    total = None
+    if hasattr(source, "count"):
+        try:
+            total = source.count(name, hwm_column, since)
+        except Exception as exc:  # noqa: BLE001 - counting is best-effort; fall back to count-only
+            logger.debug("row count unavailable for %s: %s", name, exc)
+    result.total = total
+    logger.info("load %s -> %s (hwm_column=%s, since=%s, total=%s, dry_run=%s)",
+                name, target, hwm_column, since, total, dry_run)
+    progress = Progress(total, label=f"{name}->{target}")
 
     last_hwm = since
     for batch in source.fetch_batches(name, hwm_column, since, batch_size):
@@ -67,11 +79,11 @@ def load_table(source, sink, watermarks: WatermarkStore, table_cfg: dict,
         if dry_run:
             if result.batches == 1:
                 logger.info("[dry-run] sample masked row: %s", masked[0])
-            logger.info("[dry-run] would write %d rows to %s (batch %d)",
-                        len(masked), target, result.batches)
         else:
             written = sink.write(target, masked)
             result.rows_written += written
+
+        progress.update(len(batch))
 
         # Rows are fetched ORDER BY hwm ASC, so the LAST row of the batch carries the
         # batch's max HWM. Take it as-is (native type) — never compare stored-vs-native
@@ -83,6 +95,8 @@ def load_table(source, sink, watermarks: WatermarkStore, table_cfg: dict,
             if not dry_run:
                 watermarks.set(name, last_hwm)
 
+    if result.batches:
+        progress.finish()
     result.new_watermark = last_hwm
     logger.info("done %s: %r", target, result)
     return result

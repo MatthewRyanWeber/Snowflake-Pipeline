@@ -129,6 +129,39 @@ def test_incremental_resumes_from_watermark(tmp_path):
 
 # --- file source (offline end-to-end) ---
 
+def test_progress_estimates_eta():
+    from loader.progress import Progress, format_duration
+    now = [0.0]
+    p = Progress(total=1000, label="t", min_interval=0, clock=lambda: now[0])
+    now[0] = 1.0
+    p.update(250)                       # 250 rows in 1s -> 750 left at 250/s -> 3s
+    assert p.done == 250
+    assert abs(p.eta_seconds() - 3.0) < 0.01
+    assert format_duration(3) == "3s" and format_duration(125) == "2m05s"
+
+
+def test_progress_handles_unknown_total():
+    from loader.progress import Progress
+    p = Progress(total=None, label="t", min_interval=0, clock=lambda: 0.0)
+    p.update(10)                        # must not divide-by-total or raise
+    p.finish()
+    assert p.done == 10 and p.eta_seconds() == float("inf")
+
+
+def test_file_source_count_matches_fetch(tmp_path):
+    import csv as _csv
+    from loader.source_file import FileSource
+    path = tmp_path / "p.csv"
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        w = _csv.DictWriter(fh, fieldnames=["patient_id"])
+        w.writeheader()
+        for i in range(1, 8):
+            w.writerow({"patient_id": f"PAT-{i:03d}"})
+    src = FileSource(path).connect()
+    assert src.count("p", "patient_id", None) == 7
+    assert src.count("p", "patient_id", "PAT-005") == 2
+
+
 def test_watermark_preserves_native_int():
     from loader.watermark import WatermarkStore
     import tempfile, os

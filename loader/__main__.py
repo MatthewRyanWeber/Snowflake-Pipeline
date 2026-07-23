@@ -93,6 +93,11 @@ def _build_source(cfg: dict):
     if src_type == "sqlite":
         from .source_sqlite import SqliteSource
         return SqliteSource(src["path"])
+    if src_type == "oracle":
+        from .source_oracle import OracleSource
+        return OracleSource(dsn=src.get("dsn"), user=src.get("user"),
+                            password_env=src.get("password_env", "ORACLE_PASSWORD"),
+                            conn_str=src.get("conn_str"))
     if src_type == "sqlserver":
         from .source_sqlserver import SqlServerSource
         return SqlServerSource(dsn=src.get("dsn"), conn_str=src.get("conn_str"))

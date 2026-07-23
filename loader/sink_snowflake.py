@@ -44,6 +44,27 @@ class SnowflakeSink:
     def write(self, table: str, rows: list[dict]) -> int:
         if not rows:
             return 0
+        # Fast path: write_pandas stages the batch as parquet and COPYs it — far faster than
+        # row-by-row INSERT (which caps out near a few hundred rows/s on a wide table).
+        try:
+            return self._write_pandas(table, rows)
+        except ImportError:
+            return self._write_insert(table, rows)
+
+    def _write_pandas(self, table: str, rows: list[dict]) -> int:
+        import pandas as pd
+        from snowflake.connector.pandas_tools import write_pandas
+
+        df = pd.DataFrame(rows)
+        df.columns = [c.upper() for c in df.columns]  # match Snowflake's unquoted identifiers
+        _, _, nrows, _ = write_pandas(
+            self._conn, df, table_name=table.upper(),
+            database=self.database, schema=self.schema, quote_identifiers=False,
+        )
+        logger.debug("write_pandas %d rows -> %s.%s", nrows, self.schema, table)
+        return nrows
+
+    def _write_insert(self, table: str, rows: list[dict]) -> int:
         columns = list(rows[0].keys())
         placeholders = ", ".join(["%s"] * len(columns))
         collist = ", ".join(columns)
@@ -55,7 +76,7 @@ class SnowflakeSink:
             self._conn.commit()
         finally:
             cur.close()
-        logger.debug("wrote %d rows -> %s.%s", len(rows), self.schema, table)
+        logger.debug("insert %d rows -> %s.%s", len(rows), self.schema, table)
         return len(rows)
 
     def close(self):

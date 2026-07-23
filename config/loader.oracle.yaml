@@ -1,0 +1,27 @@
+# Loader config for an Oracle source. Password comes from an ENV VAR (never the file):
+#   export ORACLE_PASSWORD=...   (or set password_env to a different variable name)
+# Requires the oracledb driver:  pip install oracledb
+
+source:
+  type: oracle
+  dsn: "localhost:1521/FREEPDB1"     # host:port/service_name
+  user: HEALTH
+  password_env: ORACLE_PASSWORD
+  # conn_str: "..."                   # alternatively, a full oracledb connect string
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: PATIENTS
+    target: PATIENTS_CSV
+    hwm_column: PATIENT_ID
+    batch_size: 5000
+    mask:
+      SSN: ssn
+      PHONE: phone

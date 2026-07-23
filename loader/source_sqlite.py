@@ -40,6 +40,14 @@ class SqliteSource:
                 break
             yield [dict(r) for r in rows]
 
+    def count(self, table: str, hwm_column: str, since) -> int:
+        cur = self._conn.cursor()
+        if since is None:
+            cur.execute(f"SELECT COUNT(*) FROM {table}")
+        else:
+            cur.execute(f"SELECT COUNT(*) FROM {table} WHERE {hwm_column} > ?", (since,))
+        return cur.fetchone()[0]
+
     def close(self):
         if self._conn is not None:
             self._conn.close()

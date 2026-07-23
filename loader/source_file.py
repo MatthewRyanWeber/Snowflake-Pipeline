@@ -38,5 +38,14 @@ class FileSource:
         for i in range(0, len(rows), batch_size):
             yield rows[i:i + batch_size]
 
+    def count(self, table: str, hwm_column: str, since) -> int:
+        with self.path.open(encoding="utf-8", newline="") as fh:
+            rows = list(csv.DictReader(fh))
+        if not rows:
+            return 0
+        if since is None:
+            return len(rows)
+        return sum(1 for r in rows if str(r[hwm_column]) > str(since))
+
     def close(self):
         pass
