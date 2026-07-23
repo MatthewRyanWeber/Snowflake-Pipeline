@@ -11,7 +11,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 
 | Phase | Title | Status |
 |---|---|---|
-| 0 | Foundation | 🟡 In progress (repo done; Snowflake env pending) |
+| 0 | Foundation | 🟡 Scripts written + dry-run verified; live deploy pending trial account |
 | 1 | Snowpipe ingestion (files → RAW) | ⬜ Not started |
 | 2 | Relational source loader (Python) | ⬜ Not started |
 | 3 | Streams + Tasks → star schema | ⬜ Not started |
@@ -31,11 +31,11 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - [x] Repo skeleton: directory scaffold, README, MIT LICENSE, `.gitignore`
 - [x] 20 repo topics added
 - [x] `PLAN.md` in place (renamed from `snowflake-pipeline-plan.md`)
-- [ ] Snowflake 30-day trial account created; account identifier noted
-- [ ] SnowSQL CLI installed; named connection configured (no hardcoded creds)
-- [ ] `sql/00_setup/*.sql` — idempotent: role, warehouse (XSMALL, auto-suspend 60s), database, schemas `RAW`/`STAGING`/`MARTS`
-- [ ] `scripts/deploy.sh` — rebuilds full env via SnowSQL, zero manual clicks
-- [ ] **Acceptance:** `./scripts/deploy.sh` on a clean account produces the full layout
+- [ ] Snowflake 30-day trial account created; account identifier noted ← **YOU** (see `docs/phase0-foundation.md`)
+- [ ] SnowSQL CLI installed; named connection `snowflake_pipeline` in `~/.snowsql/config` ← **YOU**
+- [x] `sql/00_setup/*.sql` — idempotent: role, warehouse (XSMALL, auto-suspend 60s), database, schemas `RAW`/`STAGING`/`MARTS` *(written; config-driven via `config/pipeline.conf`)*
+- [x] `scripts/deploy.sh` — rebuilds full env via SnowSQL, `--dry-run` supported *(written; dry-run verified offline)*
+- [ ] **Acceptance:** `./scripts/deploy.sh` on a clean account produces the full layout *(blocked on trial account above)*
 
 ## Phase 1 — Snowpipe ingestion (files → RAW, incl. semi-structured)
 
