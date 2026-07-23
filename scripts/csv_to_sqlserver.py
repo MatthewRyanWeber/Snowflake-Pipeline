@@ -5,7 +5,7 @@ Creates the database + table if needed (Windows/trusted auth by default). Compan
 csv_to_sqlite.py. No password stored anywhere — uses Trusted_Connection.
 
 Usage:
-  python scripts/csv_to_sqlserver.py --csv data/synthea/patients.csv \
+  python -m scripts.csv_to_sqlserver --csv data/synthea/patients.csv \
       --database HEALTH_SOURCE --table patients
 """
 

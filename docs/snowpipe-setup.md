@@ -20,7 +20,7 @@ VARIANT/JSON "semi-structured" demonstration.
 Generate Synthea-shaped files (stdlib Python, no deps):
 
 ```bash
-python scripts/generate_synthetic_data.py --num-patients 200 --seed 42 --out-dir data/synthea
+python -m scripts.generate_synthetic_data --num-patients 200 --seed 42 --out-dir data/synthea
 # -> data/synthea/patients.csv   (structured → PATIENTS_CSV)
 # -> data/synthea/encounters.json (NDJSON, nested arrays → ENCOUNTERS_JSON VARIANT)
 ```
@@ -50,8 +50,8 @@ Snowflake generates the trust principals *after* the integration exists.
    `SF_S3_URL` in `config/pipeline.conf`.
 4. **Create the integration + stage:**
    ```bash
-   python scripts/run_sql.py --dir sql/10_ingest --dry-run   # preview
-   python scripts/run_sql.py --dir sql/10_ingest             # create objects
+   python -m scripts.run_sql --dir sql/10_ingest --dry-run   # preview
+   python -m scripts.run_sql --dir sql/10_ingest             # create objects
    ```
 5. **`DESC INTEGRATION HEALTH_S3_INT;`** (printed by `00_storage_integration.sql`) — copy
    `STORAGE_AWS_IAM_USER_ARN` and `STORAGE_AWS_EXTERNAL_ID`.

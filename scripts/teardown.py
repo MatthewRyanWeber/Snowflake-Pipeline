@@ -4,7 +4,7 @@
 Drops the database (cascades to schemas, tables, streams, tasks, stages), the warehouse,
 and the role. Requires ACCOUNTADMIN. Guarded by --yes so it can't run by accident.
 
-Run:  python scripts/teardown.py --yes
+Run:  python -m scripts.teardown --yes
 """
 
 import argparse

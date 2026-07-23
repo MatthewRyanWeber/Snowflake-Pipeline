@@ -6,9 +6,9 @@ straight to an internal stage instead of landing in S3. Useful for local testing
 before (or without) wiring up S3 auto-ingest.
 
 Usage:
-  python scripts/load_internal_stage.py --file data/synthea/encounters.json \
+  python -m scripts.load_internal_stage --file data/synthea/encounters.json \
       --table ENCOUNTERS_JSON --format json
-  python scripts/load_internal_stage.py --file data/synthea/patients.csv \
+  python -m scripts.load_internal_stage --file data/synthea/patients.csv \
       --table PATIENTS_CSV --format csv
 """
 
@@ -17,7 +17,7 @@ import logging
 import sys
 from pathlib import Path
 
-import _cli
+from . import _cli
 
 logger = logging.getLogger("load_internal_stage")
 

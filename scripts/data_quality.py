@@ -3,14 +3,14 @@
 Each check is a SQL query that must return 0 (a count of violations). Non-zero = failure;
 the script exits non-zero so it can gate CI or a post-load step. Fail loud, never silent.
 
-Run:  python scripts/data_quality.py [--connection NAME] [--database DB]
+Run:  python -m scripts.data_quality [--connection NAME] [--database DB]
 """
 
 import argparse
 import logging
 import sys
 
-import _cli
+from . import _cli
 
 logger = logging.getLogger("data_quality")
 DB = "HEALTH_ANALYTICS"

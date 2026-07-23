@@ -10,7 +10,7 @@ Same result two ways:
 This is the honest analog to "Spark job optimization": Snowpark is Snowflake's Spark-style
 DataFrame API, compiled to SQL and executed in the warehouse.
 
-Run:  python snowpark/cohort_aggregation.py
+Run:  python -m snowpark.cohort_aggregation
 """
 
 import logging

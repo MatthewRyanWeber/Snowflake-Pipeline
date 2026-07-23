@@ -41,18 +41,18 @@ the SQL. Change a name there and re-deploy.
 
 ```bash
 # Preview only — prints the resolved SQL, executes nothing:
-python scripts/run_sql.py --dir sql/00_setup --dry-run
+python -m scripts.run_sql --dir sql/00_setup --dry-run
 
 # Real run:
-python scripts/run_sql.py --dir sql/00_setup                      # uses SF_CONNECTION from config
-python scripts/run_sql.py --dir sql/00_setup --connection my_conn # or override the connection
+python -m scripts.run_sql --dir sql/00_setup                      # uses SF_CONNECTION from config
+python -m scripts.run_sql --dir sql/00_setup --connection my_conn # or override the connection
 ```
 
 The tool runs `sql/00_setup/*.sql` in numeric order and stops on the first error.
 
 ## Acceptance criteria
 
-- `python scripts/run_sql.py --dir sql/00_setup` on a clean account produces the full
+- `python -m scripts.run_sql --dir sql/00_setup` on a clean account produces the full
   role/warehouse/schema layout with zero manual clicks.
 - `99_validate.sql` (run last) reports `CURRENT_ROLE = PIPELINE_ROLE`,
   `CURRENT_WAREHOUSE = PIPELINE_WH`, `CURRENT_DATABASE = HEALTH_ANALYTICS`, and lists the

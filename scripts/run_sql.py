@@ -6,8 +6,8 @@ top-level *.sql in a directory in filename order. Handles stored-procedure bodie
 Credentials come from the named connection in ~/.snowflake/connections.toml — never here.
 
 Usage:
-  python scripts/run_sql.py --dir sql/00_setup [--dry-run] [--connection NAME]
-  python scripts/run_sql.py --file sql/00_setup/99_validate.sql
+  python -m scripts.run_sql --dir sql/00_setup [--dry-run] [--connection NAME]
+  python -m scripts.run_sql --file sql/00_setup/99_validate.sql
 """
 
 import argparse
@@ -16,7 +16,7 @@ import re
 import sys
 from pathlib import Path
 
-import _cli
+from . import _cli
 
 logger = logging.getLogger("run_sql")
 

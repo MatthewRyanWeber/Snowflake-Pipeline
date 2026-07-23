@@ -5,7 +5,7 @@ Runs the whole pipeline against the live account using the same scripts document
 demo. Idempotent: safe to re-run (deploys use IF NOT EXISTS; loads are watermark-incremental;
 backfill uses INSERT OVERWRITE / MERGE). Fails loud on the first error.
 
-Run:  python scripts/run_pipeline.py --num-patients 300
+Run:  python -m scripts.run_pipeline --num-patients 300
 """
 
 import argparse
@@ -60,27 +60,27 @@ def main() -> int:
     data = Path(args.data_dir)
 
     # 1. Foundation + RAW structures
-    run("deploy foundation", "scripts/run_sql.py", "--dir", "sql/00_setup")
-    run("file formats", "scripts/run_sql.py", "--file", "sql/10_ingest/01_file_formats.sql")
-    run("raw tables", "scripts/run_sql.py", "--file", "sql/10_ingest/03_raw_tables.sql")
+    run("deploy foundation", "-m", "scripts.run_sql", "--dir", "sql/00_setup")
+    run("file formats", "-m", "scripts.run_sql", "--file", "sql/10_ingest/01_file_formats.sql")
+    run("raw tables", "-m", "scripts.run_sql", "--file", "sql/10_ingest/03_raw_tables.sql")
 
     # 2. Data
-    run("generate data", "scripts/generate_synthetic_data.py",
+    run("generate data", "-m", "scripts.generate_synthetic_data",
         "--num-patients", str(args.num_patients), "--out-dir", str(data))
 
     # 3. Load (relational via loader, semi-structured via internal stage)
     cfg = ROOT / "config" / "loader.local.yaml"
     cfg.write_text(LOCAL_CONFIG.format(data=data.as_posix()), encoding="utf-8")
     run("load patients", "-m", "loader", "--config", "config/loader.local.yaml")
-    run("load encounters", "scripts/load_internal_stage.py",
+    run("load encounters", "-m", "scripts.load_internal_stage",
         "--file", f"{data}/encounters.json", "--table", "ENCOUNTERS_JSON", "--format", "json", "--truncate")
 
     # 4. Transform (backfill build)
     for step in TRANSFORM_STEPS:
-        run(f"transform {step}", "scripts/run_sql.py", "--file", f"sql/30_transform/{step}.sql")
+        run(f"transform {step}", "-m", "scripts.run_sql", "--file", f"sql/30_transform/{step}.sql")
 
     # 5. Validate
-    run("data quality", "scripts/data_quality.py")
+    run("data quality", "-m", "scripts.data_quality")
 
     logger.info("✅ pipeline complete — RAW → STAGING → MARTS built and validated")
     return 0

@@ -55,7 +55,7 @@ makes the scan *smaller*, which is cheaper and scales.
 ## How to reproduce
 
 ```bash
-python scripts/perf_case_study.py --rowcount 2000
+python -m scripts.perf_case_study --rowcount 2000
 ```
 
 Builds both tables, runs the query, prints `partitions_scanned / total` and clustering depth

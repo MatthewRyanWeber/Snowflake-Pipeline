@@ -30,10 +30,10 @@ jobs:
         run: python -m loader --dry-run --config config/loader.sample.yaml
 
       - name: Data generator smoke
-        run: python scripts/generate_synthetic_data.py --num-patients 20 --out-dir /tmp/gen
+        run: python -m scripts.generate_synthetic_data --num-patients 20 --out-dir /tmp/gen
 
   # Live deploy + validation would run here on a protected environment using repo secrets
   # (SNOWFLAKE_ACCOUNT / USER / PASSWORD) to build ~/.snowflake/connections.toml, then:
-  #   python scripts/run_sql.py --dir sql/00_setup
-  #   python scripts/data_quality.py
+  #   python -m scripts.run_sql --dir sql/00_setup
+  #   python -m scripts.data_quality
   # Omitted from PR CI so no credentials are required to validate the code.

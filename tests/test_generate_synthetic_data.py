@@ -5,8 +5,8 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-import generate_synthetic_data as gen  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts import generate_synthetic_data as gen  # noqa: E402
 
 
 def test_deterministic_given_seed():

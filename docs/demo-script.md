@@ -7,10 +7,10 @@ A live walkthrough from a clean deploy. Assumes a Snowflake account and
 
 ```bash
 pip install -r requirements.txt
-python scripts/run_sql.py --dir sql/00_setup          # role, warehouse, DB, schemas
-python scripts/run_sql.py --file sql/10_ingest/01_file_formats.sql
-python scripts/run_sql.py --file sql/10_ingest/03_raw_tables.sql
-python scripts/generate_synthetic_data.py --num-patients 300 --out-dir data/synthea
+python -m scripts.run_sql --dir sql/00_setup          # role, warehouse, DB, schemas
+python -m scripts.run_sql --file sql/10_ingest/01_file_formats.sql
+python -m scripts.run_sql --file sql/10_ingest/03_raw_tables.sql
+python -m scripts.generate_synthetic_data --num-patients 300 --out-dir data/synthea
 ```
 
 ## 1. Governance up front (30s)
@@ -24,7 +24,7 @@ runs as a least-privilege `PIPELINE_ROLE`, not `ACCOUNTADMIN`." Show `config/pip
 ```bash
 python -m loader --dry-run --config config/loader.local.yaml   # shows masked sample, writes nothing
 python -m loader --config config/loader.local.yaml             # loads 300 patients
-python scripts/load_internal_stage.py --file data/synthea/encounters.json --table ENCOUNTERS_JSON --format json --truncate
+python -m scripts.load_internal_stage --file data/synthea/encounters.json --table ENCOUNTERS_JSON --format json --truncate
 ```
 
 "SSN and phone are masked on load — raw PII never lands." Then in a worksheet:
@@ -45,7 +45,7 @@ GROUP BY 1 ORDER BY 2 DESC;
 ## 4. Build the star schema + SCD2 (60s)
 
 ```bash
-python scripts/run_sql.py --dir sql/30_transform    # streams, staging, dims, fact, DAG
+python -m scripts.run_sql --dir sql/30_transform    # streams, staging, dims, fact, DAG
 ```
 
 ```sql
@@ -72,8 +72,8 @@ SELECT COUNT(*) FROM MARTS.FACT_ENCOUNTER;   -- grows after the DAG runs
 ## 6. Senior signals (45s)
 
 ```bash
-python snowpark/cohort_aggregation.py     # naive vs optimized: 206x less client data movement
-python scripts/perf_case_study.py         # pruning: 15/15 -> 2/16 partitions scanned
+python -m snowpark.cohort_aggregation     # naive vs optimized: 206x less client data movement
+python -m scripts.perf_case_study         # pruning: 15/15 -> 2/16 partitions scanned
 ```
 
 "Snowpark pushes the aggregation into the warehouse; the tuning study shows micro-partition

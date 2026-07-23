@@ -60,29 +60,29 @@ Credentials go in `~/.snowflake/connections.toml` (connector) or `~/.snowsql/con
 pip install -r requirements.txt
 
 # One command — deploy + ingest + transform + validate, end to end:
-python scripts/run_pipeline.py --num-patients 300
-# Clean uninstall when done:  python scripts/teardown.py --yes
+python -m scripts.run_pipeline --num-patients 300
+# Clean uninstall when done:  python -m scripts.teardown --yes
 ```
 
 Or step by step:
 
 ```bash
 # Deploy each phase (connector-based; no SnowSQL needed):
-python scripts/run_sql.py --dir sql/00_setup                 # role, warehouse, DB, schemas
-python scripts/run_sql.py --file sql/10_ingest/01_file_formats.sql
-python scripts/run_sql.py --file sql/10_ingest/03_raw_tables.sql
+python -m scripts.run_sql --dir sql/00_setup                 # role, warehouse, DB, schemas
+python -m scripts.run_sql --file sql/10_ingest/01_file_formats.sql
+python -m scripts.run_sql --file sql/10_ingest/03_raw_tables.sql
 
 # Generate data + load (masked, incremental):
-python scripts/generate_synthetic_data.py --num-patients 300 --out-dir data/synthea
+python -m scripts.generate_synthetic_data --num-patients 300 --out-dir data/synthea
 python -m loader --config config/loader.local.yaml
-python scripts/load_internal_stage.py --file data/synthea/encounters.json --table ENCOUNTERS_JSON --format json --truncate
+python -m scripts.load_internal_stage --file data/synthea/encounters.json --table ENCOUNTERS_JSON --format json --truncate
 
 # Build the star schema + Task DAG:
-python scripts/run_sql.py --dir sql/30_transform
+python -m scripts.run_sql --dir sql/30_transform
 
 # Senior-signal demos:
-python snowpark/cohort_aggregation.py    # naive vs optimized pushdown
-python scripts/perf_case_study.py        # micro-partition pruning
+python -m snowpark.cohort_aggregation    # naive vs optimized pushdown
+python -m scripts.perf_case_study        # micro-partition pruning
 ```
 
 `scripts/run_sql.py` is the single deploy tool (connector-based, cross-platform, no SnowSQL

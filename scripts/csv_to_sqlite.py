@@ -1,7 +1,7 @@
 """Build a SQLite database from a CSV, so the loader has a real relational source to read.
 
 Usage:
-  python scripts/csv_to_sqlite.py --csv data/synthea/patients.csv --db data/synthea/patients.db --table patients
+  python -m scripts.csv_to_sqlite --csv data/synthea/patients.csv --db data/synthea/patients.db --table patients
 """
 
 import argparse

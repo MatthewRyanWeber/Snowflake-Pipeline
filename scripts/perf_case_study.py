@@ -7,14 +7,14 @@ Builds two copies of a large fact table from the same rows:
 Runs the SAME date-range-filtered query on each and reports partitions scanned / total from
 the Query Profile. Ordering on the filter column lets Snowflake prune micro-partitions.
 
-Run:  python scripts/perf_case_study.py --rowcount 2000
+Run:  python -m scripts.perf_case_study --rowcount 2000
 """
 
 import argparse
 import json
 import logging
 
-import _cli
+from . import _cli
 
 logger = logging.getLogger("perf_case_study")
 DB = "HEALTH_ANALYTICS"
