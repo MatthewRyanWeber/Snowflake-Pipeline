@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PY = sys.executable
 
 TRANSFORM_STEPS = [  # DDL + procedures + backfill (the scheduled DAG lives in 06_tasks.sql)
-    "00_streams", "01_staging", "02_marts_dims", "03_marts_fact",
+    "00_streams", "00_udfs", "01_staging", "02_marts_dims", "03_marts_fact",
     "04_procedures", "05_backfill",
 ]
 

@@ -15,6 +15,27 @@ for deploy + validation.
 > Data is fully synthetic — no real records. PII masking and governance controls are built
 > and demonstrated as if it were production data.
 
+## Demo
+
+[![15-second demo](docs/images/sizzle.gif)](docs/videos/snowflake-pipeline-sizzle.mp4)
+
+*15-second overview — click for the full 1080p video ([`docs/videos/`](docs/videos/snowflake-pipeline-sizzle.mp4)).*
+
+## Native Snowflake objects
+
+The transformation and orchestration run **inside Snowflake** (not just an external
+connector). Objects created:
+
+| Object | Where | Purpose |
+|---|---|---|
+| **Tables** | `RAW` / `STAGING` / `MARTS` | landing → cleansed → star schema (fact + dims) |
+| **Views** | `STAGING.v_*` | canonical flatten/dedup; call the masking UDFs |
+| **Stored Procedures** | `STAGING.sp_ingest`, `sp_build_marts` | the transform logic |
+| **Streams** | `RAW.str_patients`, `str_encounters` | change data capture (incremental) |
+| **Tasks** | `t_ingest → t_build_marts` | scheduled, stream-gated DAG |
+| **Snowpipe** | `RAW.patients_pipe`, `encounters_pipe` | file auto-ingest (S3 event → SQS) |
+| **UDFs** | `STAGING.mask_ssn`, `mask_phone` | in-warehouse PII masking |
+
 ## CLI in action
 
 Bulk load (SQL Server → Snowflake) with live progress + ETA:

@@ -60,8 +60,9 @@ produced a second version; historical encounters still resolved to the prior ver
 The transform logic has exactly one home. Flatten/dedup rules live in staging **views**
 (`v_patients_dedup`, `v_encounters_flat`, `v_observations_flat`, in `01_staging.sql`), and
 region / SCD2 / the fact join live in two **stored procedures** (`sp_ingest`,
-`sp_build_marts`, in `04_procedures.sql`). Both the backfill and the DAG call the same
-procedures, so nothing is duplicated.
+`sp_build_marts`, in `04_procedures.sql`). PII masking lives in **UDFs** (`mask_ssn`,
+`mask_phone`, in `00_udfs.sql`) that the staging views call. Both the backfill and the DAG
+call the same procedures, so nothing is duplicated.
 
 - **Streams** `RAW.STR_PATIENTS`, `RAW.STR_ENCOUNTERS` (APPEND_ONLY) capture new RAW rows.
 - **Backfill** (`05_backfill.sql`) seeds STAGING from the views, then `CALL sp_build_marts()`.

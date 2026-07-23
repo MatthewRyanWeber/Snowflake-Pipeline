@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS observations (
 
 CREATE OR REPLACE VIEW v_patients_dedup AS
 SELECT patient_id, first_name, last_name, birth_date, gender, city, state,
-       ssn AS ssn_masked, phone AS phone_masked
+       mask_ssn(ssn) AS ssn_masked, mask_phone(phone) AS phone_masked
 FROM (
   SELECT *, ROW_NUMBER() OVER (PARTITION BY patient_id ORDER BY _load_ts DESC NULLS LAST) rn
   FROM &{sf_database}.&{sf_schema_raw}.patients_csv
