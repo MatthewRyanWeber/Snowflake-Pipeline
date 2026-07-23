@@ -163,10 +163,21 @@ python -m scripts.data_quality           # referential-integrity + masking check
 `scripts/run_sql.py` is the single deploy tool (connector-based, cross-platform, no SnowSQL
 install). Full walkthrough: [`docs/demo-script.md`](docs/demo-script.md).
 
+## Run as a managed service
+
+- **Environments:** `config/pipeline.dev.conf` / `pipeline.prod.conf` deploy to separate
+  databases (verified live: `HEALTH_ANALYTICS_DEV`).
+- **CI/CD deploys:** `.github/workflows/deploy.yml` deploys the native stack to a chosen
+  environment from GitHub Actions (secrets, not a laptop).
+- **Containerized connector:** `Dockerfile` runs the loader on any scheduler; it reads its
+  work-list from `GOV.SOURCES`.
+
+See [`docs/managed-service.md`](docs/managed-service.md) for the full architecture and setup.
+
 ## Docs
 
 Functional spec · technical design · data model · Snowpipe setup · loader · performance
-(storage/pruning) case study — all under [`docs/`](docs/).
+(storage/pruning) case study · managed service — all under [`docs/`](docs/).
 
 ## Conventions
 

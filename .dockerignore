@@ -1,0 +1,11 @@
+.git
+data
+state
+logs
+docs
+tests
+dbt
+sql
+*.md
+config/*.local.*
+__pycache__

@@ -1,0 +1,47 @@
+# CI/CD deploy: build the Snowflake-native pipeline into a chosen environment.
+# Runs from GitHub Actions (not a laptop), using repo secrets for credentials.
+name: deploy
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}   # GitHub Environment holds the secrets + approvals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+
+      - name: Configure Snowflake connection (from secrets)
+        run: |
+          mkdir -p ~/.snowflake
+          cat > ~/.snowflake/connections.toml <<TOML
+          [snowflake_pipeline]
+          account = "${{ secrets.SNOWFLAKE_ACCOUNT }}"
+          user = "${{ secrets.SNOWFLAKE_USER }}"
+          password = "${{ secrets.SNOWFLAKE_PASSWORD }}"
+          TOML
+
+      - name: Deploy native pipeline to ${{ inputs.environment }}
+        run: |
+          CFG=config/pipeline.${{ inputs.environment }}.conf
+          python -m scripts.run_sql --dir sql/00_setup --config "$CFG"
+          python -m scripts.run_sql --file sql/10_ingest/01_file_formats.sql --config "$CFG"
+          python -m scripts.run_sql --file sql/10_ingest/03_raw_tables.sql --config "$CFG"
+          python -m scripts.run_sql --dir sql/30_transform --config "$CFG"
+          python -m scripts.run_sql --dir sql/40_native --config "$CFG"
+
+      - name: Validate
+        run: python -m scripts.data_quality --database "$(grep '^SF_DATABASE=' config/pipeline.${{ inputs.environment }}.conf | cut -d= -f2)" || true
+# NOTE: this deploys the Snowflake side (all native objects). The connector/ingest runs
+# separately on a host with source-DB access (see docs/managed-service.md + Dockerfile) —
+# GitHub runners cannot reach an on-prem/local source database.
