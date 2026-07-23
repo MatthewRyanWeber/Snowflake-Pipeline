@@ -21,16 +21,23 @@ import _cli
 
 logger = logging.getLogger("load_internal_stage")
 
-# COPY transform per file type — mirrors sql/10_ingest/04_snowpipe.sql column mapping.
-COPY_SELECT = {
-    "json": "SELECT $1, METADATA$FILENAME, METADATA$FILE_ROW_NUMBER",
-    "csv": ("SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, METADATA$FILENAME"),
-}
-COPY_COLS = {
-    "json": "(v, _source_file, _file_row)",
-    "csv": ("(patient_id, first_name, last_name, birth_date, gender, ssn, "
-            "address, city, state, zip, phone, _source_file)"),
-}
+# Per-format COPY body. CSV matches columns by NAME (order-independent); JSON lands the whole
+# object into the VARIANT column. Mirrors sql/10_ingest/04_snowpipe.sql.
+def _copy_body(fmt: str, table: str, stage: str, fmt_name: str, pattern: str) -> str:
+    if fmt == "csv":
+        return (
+            f"COPY INTO {table} FROM @{stage}\n"
+            f"FILE_FORMAT = (FORMAT_NAME = {fmt_name})\n"
+            f"MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE\n"
+            f"INCLUDE_METADATA = (_source_file = METADATA$FILENAME)\n"
+            f"PATTERN = '{pattern}'\nON_ERROR = 'ABORT_STATEMENT'"
+        )
+    return (
+        f"COPY INTO {table} (v, _source_file, _file_row)\n"
+        f"FROM (SELECT $1, METADATA$FILENAME, METADATA$FILE_ROW_NUMBER FROM @{stage})\n"
+        f"FILE_FORMAT = (FORMAT_NAME = {fmt_name})\n"
+        f"PATTERN = '{pattern}'\nON_ERROR = 'ABORT_STATEMENT'"
+    )
 
 
 def main(argv=None) -> int:
@@ -67,13 +74,8 @@ def main(argv=None) -> int:
         logger.info("PUT %s -> @%s", args.file.name, args.stage)
         cur.execute(f"PUT 'file://{posix}' @{args.stage} OVERWRITE=TRUE AUTO_COMPRESS=TRUE")
 
-        copy_sql = (
-            f"COPY INTO {args.table} {COPY_COLS[args.format]}\n"
-            f"FROM ({COPY_SELECT[args.format]} FROM @{args.stage})\n"
-            f"FILE_FORMAT = (FORMAT_NAME = {fmt_name})\n"
-            f"PATTERN = '.*{args.file.stem}.*'\n"
-            f"ON_ERROR = 'ABORT_STATEMENT'"
-        )
+        copy_sql = _copy_body(args.format, args.table, args.stage, fmt_name,
+                              f".*{args.file.stem}.*")
         cur.execute(copy_sql)
         loaded = cur.fetchall()
         total = cur.execute(f"SELECT COUNT(*) FROM {args.table}").fetchone()[0]

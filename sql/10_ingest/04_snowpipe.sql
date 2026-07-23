@@ -12,13 +12,10 @@ CREATE PIPE IF NOT EXISTS patients_pipe
   COMMENT = 'Auto-ingest patients CSV'
   AS
   COPY INTO patients_csv
-      (patient_id, first_name, last_name, birth_date, gender, ssn,
-       address, city, state, zip, phone, _source_file)
-  FROM (
-    SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, METADATA$FILENAME
-    FROM @&{sf_stage}
-  )
+  FROM @&{sf_stage}
   FILE_FORMAT = (FORMAT_NAME = csv_format)
+  MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE          -- name-based; order-independent
+  INCLUDE_METADATA = (_source_file = METADATA$FILENAME)
   PATTERN = '.*patients.*[.]csv';
 
 CREATE PIPE IF NOT EXISTS encounters_pipe
