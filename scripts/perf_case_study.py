@@ -14,7 +14,7 @@ import argparse
 import json
 import logging
 
-import snowflake.connector as sc
+import _cli
 
 logger = logging.getLogger("perf_case_study")
 DB = "HEALTH_ANALYTICS"
@@ -65,12 +65,12 @@ def build_and_measure(cur, name: str, order_by: str | None, rowcount: int):
 
 
 def main():
-    p = argparse.ArgumentParser()
+    p = _cli.add_common_args(argparse.ArgumentParser(description=__doc__))
     p.add_argument("--rowcount", type=int, default=2000, help="fan-out multiplier (x ~1024 fact rows)")
     args = p.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
+    _cli.setup_logging(args.verbose)
 
-    con = sc.connect(connection_name="snowflake_pipeline", database=DB)
+    con = _cli.connect(args)
     cur = con.cursor()
     try:
         cur.execute("USE WAREHOUSE PIPELINE_WH")

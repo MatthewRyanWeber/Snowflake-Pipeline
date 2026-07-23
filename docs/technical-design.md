@@ -76,8 +76,9 @@ schedule, stream-gated) moves data STAGING → MARTS. `BI` reads `MARTS`.
   than trying to replay history through streams.
 - **Warehouse-backed tasks, not serverless.** Only needs `EXECUTE TASK`, reuses the XSMALL
   warehouse, cheaper on a trial. (`EXECUTE MANAGED TASK` also granted for flexibility.)
-- **Connector-based `run_sql.py` alongside SnowSQL `deploy.sh`.** Lets the pipeline deploy on
-  Windows with no SnowSQL install; `deploy.sh` remains the WSL2/SnowSQL path.
+- **One deploy tool: connector-based `run_sql.py`.** Cross-platform (Windows + Linux), no
+  SnowSQL install, and it substitutes `&{var}` placeholders and handles stored-procedure
+  bodies. A second SnowSQL/bash path was removed to avoid two orchestration surfaces drifting.
 - **Ordering-based pruning demo, not Automatic Clustering.** Deterministic and edition-
   independent; the production equivalent (`CLUSTER BY`) is documented.
 - **File source for the loader in addition to SQL Server.** Enables offline dry-run + live

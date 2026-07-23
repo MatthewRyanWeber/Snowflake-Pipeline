@@ -40,20 +40,20 @@ the SQL. Change a name there and re-deploy.
 ## Deploy
 
 ```bash
-# Preview only — prints the resolved SnowSQL commands, executes nothing:
-scripts/deploy.sh --dry-run
+# Preview only — prints the resolved SQL, executes nothing:
+python scripts/run_sql.py --dir sql/00_setup --dry-run
 
 # Real run:
-scripts/deploy.sh                      # uses SF_CONNECTION from config
-scripts/deploy.sh --connection my_conn # or override the connection
+python scripts/run_sql.py --dir sql/00_setup                      # uses SF_CONNECTION from config
+python scripts/run_sql.py --dir sql/00_setup --connection my_conn # or override the connection
 ```
 
-The script runs `sql/00_setup/*.sql` in numeric order and stops on the first error.
+The tool runs `sql/00_setup/*.sql` in numeric order and stops on the first error.
 
 ## Acceptance criteria
 
-- `scripts/deploy.sh` on a clean account produces the full role/warehouse/schema layout
-  with zero manual clicks.
+- `python scripts/run_sql.py --dir sql/00_setup` on a clean account produces the full
+  role/warehouse/schema layout with zero manual clicks.
 - `99_validate.sql` (run last) reports `CURRENT_ROLE = PIPELINE_ROLE`,
   `CURRENT_WAREHOUSE = PIPELINE_WH`, `CURRENT_DATABASE = HEALTH_ANALYTICS`, and lists the
   three schemas.
@@ -61,5 +61,4 @@ The script runs `sql/00_setup/*.sql` in numeric order and stops on the first err
 
 ## Status
 
-SQL + `deploy.sh` written and dry-run-verified offline. **Live-deploy verification is
-pending a Snowflake trial account + SnowSQL connection** (the prerequisites above).
+Verified live on account fjliqhb-of64443: full deploy + validation, idempotent re-run.

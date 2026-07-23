@@ -3,13 +3,14 @@
 Each check is a SQL query that must return 0 (a count of violations). Non-zero = failure;
 the script exits non-zero so it can gate CI or a post-load step. Fail loud, never silent.
 
-Run:  python scripts/data_quality.py
+Run:  python scripts/data_quality.py [--connection NAME] [--database DB]
 """
 
+import argparse
 import logging
 import sys
 
-import snowflake.connector as sc
+import _cli
 
 logger = logging.getLogger("data_quality")
 DB = "HEALTH_ANALYTICS"
@@ -32,8 +33,9 @@ CHECKS = {
 
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
-    con = sc.connect(connection_name="snowflake_pipeline", database=DB)
+    args = _cli.add_common_args(argparse.ArgumentParser(description=__doc__)).parse_args()
+    _cli.setup_logging(args.verbose)
+    con = _cli.connect(args)
     cur = con.cursor()
     cur.execute("USE WAREHOUSE PIPELINE_WH")
     failures = 0

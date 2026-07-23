@@ -52,25 +52,25 @@ produced a second version; historical encounters still resolved to the prior ver
 
 ## Incremental engine: Streams + Task DAG
 
+The transform logic has exactly one home. Flatten/dedup rules live in staging **views**
+(`v_patients_dedup`, `v_encounters_flat`, `v_observations_flat`, in `01_staging.sql`), and
+region / SCD2 / the fact join live in two **stored procedures** (`sp_ingest`,
+`sp_build_marts`, in `04_procedures.sql`). Both the backfill and the DAG call the same
+procedures, so nothing is duplicated.
+
 - **Streams** `RAW.STR_PATIENTS`, `RAW.STR_ENCOUNTERS` (APPEND_ONLY) capture new RAW rows.
-- **Backfill** (`04_build.sql`) seeds the model from data already in RAW (idempotent
-  `INSERT OVERWRITE` / `MERGE`).
-- **Task DAG** (`05_tasks.sql`) keeps it current, root + dependents, `SCHEDULE = 1 MINUTE`,
-  gated by `SYSTEM$STREAM_HAS_DATA`. Each task is a single statement on `PIPELINE_WH`:
+- **Backfill** (`05_backfill.sql`) seeds STAGING from the views, then `CALL sp_build_marts()`.
+- **Task DAG** (`06_tasks.sql`) keeps it current: two tasks on `PIPELINE_WH`, gated by
+  `SYSTEM$STREAM_HAS_DATA`, `SCHEDULE = 1 MINUTE`:
 
 ```
-t_stage_patients (root, stream-gated)
-├─ t_scd2_expire ─ t_scd2_insert ─────────────┐
-└─ t_land_encounters                           │
-   └─ t_stage_encounters ─ t_stage_observations│
-      ├─ t_dim_location ─ t_dim_facility ───────┤
-      └─ t_dim_provider ────────────────────────┤
-                                                 ▼
-                                              t_fact  (MERGE, multi-parent finalizer)
+t_ingest (root, stream-gated)  ->  CALL sp_ingest()       -- consume streams into STAGING
+   └─ t_build_marts            ->  CALL sp_build_marts()   -- rebuild dims, SCD2, fact
 ```
 
-The encounter stream is consumed once into `STAGING.ENCOUNTERS_DELTA`; `t_stage_encounters`
-and `t_stage_observations` both read that delta (a stream can only be consumed once per run).
+`sp_ingest` consumes each stream once (into a temp table) and applies the canonical views to
+the new keys; consuming the streams advances their offsets, which resets the WHEN gate.
+**Verified live:** a new record propagates root → dependent → `FACT_ENCOUNTER` in ~18s.
 
 ## Live-verified counts (account fjliqhb-of64443, 300 patients / 1023 encounters)
 

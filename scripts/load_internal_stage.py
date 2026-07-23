@@ -17,6 +17,8 @@ import logging
 import sys
 from pathlib import Path
 
+import _cli
+
 logger = logging.getLogger("load_internal_stage")
 
 # COPY transform per file type — mirrors sql/10_ingest/04_snowpipe.sql column mapping.
@@ -36,14 +38,13 @@ def main(argv=None) -> int:
     p.add_argument("--file", type=Path, required=True)
     p.add_argument("--table", required=True, help="target RAW table, e.g. ENCOUNTERS_JSON")
     p.add_argument("--format", choices=["csv", "json"], required=True)
-    p.add_argument("--connection", default="snowflake_pipeline")
-    p.add_argument("--database", default="HEALTH_ANALYTICS")
     p.add_argument("--schema", default="RAW")
     p.add_argument("--stage", default="LOCAL_STAGE")
     p.add_argument("--truncate", action="store_true", help="TRUNCATE target before loading")
+    _cli.add_common_args(p)
     args = p.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
+    _cli.setup_logging(args.verbose)
     if not args.file.exists():
         logger.error("file not found: %s", args.file)
         return 1
@@ -52,7 +53,8 @@ def main(argv=None) -> int:
 
     fmt_name = f"{args.schema}.{args.format}_format"
     posix = args.file.resolve().as_posix()  # PUT wants forward slashes, even on Windows
-    con = sc.connect(connection_name=args.connection, database=args.database, schema=args.schema)
+    name = _cli.read_connection_name(args.config, args.connection)
+    con = sc.connect(connection_name=name, database=args.database, schema=args.schema)
     cur = con.cursor()
     try:
         cur.execute(f"USE SCHEMA {args.database}.{args.schema}")

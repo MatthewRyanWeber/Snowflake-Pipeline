@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Run phase SQL via the Snowflake Python connector (no SnowSQL install needed).
+"""The deploy tool: run phase SQL via the Snowflake Python connector (no SnowSQL install).
 
-Mirrors scripts/deploy.sh: reads config/pipeline.conf, substitutes SnowSQL-style
-&{var} placeholders, and runs every top-level *.sql in a directory in filename order.
+Reads config/pipeline.conf, substitutes SnowSQL-style &{var} placeholders, and runs every
+top-level *.sql in a directory in filename order. Handles stored-procedure bodies ($$...$$).
 Credentials come from the named connection in ~/.snowflake/connections.toml — never here.
 
 Usage:
-  python scripts/run_sql.py --dir sql/00_setup [--dry-run] [--config config/pipeline.conf]
+  python scripts/run_sql.py --dir sql/00_setup [--dry-run] [--connection NAME]
   python scripts/run_sql.py --file sql/00_setup/99_validate.sql
 """
 
@@ -15,6 +15,8 @@ import logging
 import re
 import sys
 from pathlib import Path
+
+import _cli
 
 logger = logging.getLogger("run_sql")
 
@@ -128,20 +130,18 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Run phase SQL via the Snowflake connector.")
     p.add_argument("--dir", type=Path, help="directory of *.sql to run in order")
     p.add_argument("--file", type=Path, help="single .sql file to run")
-    p.add_argument("--config", type=Path, default=Path("config/pipeline.conf"))
     p.add_argument("--dry-run", action="store_true")
-    p.add_argument("--verbose", action="store_true")
+    _cli.add_common_args(p)
     args = p.parse_args(argv)
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
-                        format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
+    _cli.setup_logging(args.verbose)
 
     if not args.dir and not args.file:
         p.error("give --dir or --file")
 
     conf = read_conf(args.config)
     variables = build_vars(conf)
-    connection_name = conf.get("SF_CONNECTION", "snowflake_pipeline")
+    connection_name = _cli.read_connection_name(args.config, args.connection)
 
     files = [args.file] if args.file else sorted(args.dir.glob("*.sql"))
     if not files:

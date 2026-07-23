@@ -50,8 +50,8 @@ Snowflake generates the trust principals *after* the integration exists.
    `SF_S3_URL` in `config/pipeline.conf`.
 4. **Create the integration + stage:**
    ```bash
-   scripts/deploy.sh --dir sql/10_ingest --dry-run   # preview
-   scripts/deploy.sh --dir sql/10_ingest             # create objects
+   python scripts/run_sql.py --dir sql/10_ingest --dry-run   # preview
+   python scripts/run_sql.py --dir sql/10_ingest             # create objects
    ```
 5. **`DESC INTEGRATION HEALTH_S3_INT;`** (printed by `00_storage_integration.sql`) — copy
    `STORAGE_AWS_IAM_USER_ARN` and `STORAGE_AWS_EXTERNAL_ID`.

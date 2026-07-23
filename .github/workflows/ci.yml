@@ -23,8 +23,8 @@ jobs:
       - name: Unit tests
         run: python -m pytest tests/ -q
 
-      - name: Shell syntax (deploy.sh)
-        run: bash -n scripts/deploy.sh
+      - name: Compile scripts + loader
+        run: python -m compileall -q scripts loader snowpark
 
       - name: Loader offline dry-run (masking + flow, no DB)
         run: python -m loader --dry-run --config config/loader.sample.yaml

@@ -20,11 +20,23 @@ class SnowflakeSink:
 
     def connect(self):
         import snowflake.connector  # lazy: only needed for a live run
+        from snowflake.connector import errors as sferrors
 
-        self._conn = snowflake.connector.connect(
-            connection_name=self.connection_name,
-            database=self.database,
-            schema=self.schema,
+        from .retry import with_retry
+
+        def _open():
+            return snowflake.connector.connect(
+                connection_name=self.connection_name,
+                database=self.database,
+                schema=self.schema,
+                login_timeout=15,      # fail fast on an unreachable account
+                network_timeout=30,    # bound each request, don't hang a run
+            )
+
+        # Retry only transient connectivity errors; a bad credential fails immediately.
+        self._conn = with_retry(
+            _open, what="Snowflake connect",
+            exceptions=(sferrors.OperationalError, sferrors.InterfaceError),
         )
         logger.info("connected to Snowflake %s.%s", self.database, self.schema)
         return self

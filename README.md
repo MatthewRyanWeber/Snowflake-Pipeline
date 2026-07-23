@@ -40,7 +40,7 @@ with GitHub Actions for deploy + validation.
 | `sql/30_transform/` | Streams, Tasks DAG, STAGING → MARTS star schema. |
 | `loader/` | Python batch loader for the relational (SQL Server) source. |
 | `snowpark/` | Snowpark DataFrame transform (naive vs. optimized). |
-| `scripts/` | `deploy.sh` and other run wrappers. |
+| `scripts/` | `run_sql.py` (deploy), `run_pipeline.py` (end-to-end), loaders, data-quality, teardown. |
 | `config/` | Table lists, mappings, schedules (no secrets). |
 | `docs/` | Functional spec, technical design, tuning case study, diagrams. |
 | `tests/` | Unit tests, runnable with a single command. |
@@ -85,8 +85,8 @@ python snowpark/cohort_aggregation.py    # naive vs optimized pushdown
 python scripts/perf_case_study.py        # micro-partition pruning
 ```
 
-`scripts/deploy.sh` is the equivalent SnowSQL/WSL2 path. Full walkthrough:
-[`docs/demo-script.md`](docs/demo-script.md).
+`scripts/run_sql.py` is the single deploy tool (connector-based, cross-platform, no SnowSQL
+install). Full walkthrough: [`docs/demo-script.md`](docs/demo-script.md).
 
 ## Docs
 
