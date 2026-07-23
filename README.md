@@ -12,6 +12,20 @@ for deploy + validation.
 > Data is fully synthetic — no real records. PII masking and governance controls are built
 > and demonstrated as if it were production data.
 
+## CLI in action
+
+Bulk load (SQL Server → Snowflake) with live progress + ETA:
+
+![Loader progress](docs/images/cli-loader.png)
+
+Revenue-cycle reporting over the star schema:
+
+![Revenue report](docs/images/cli-report.png)
+
+End-to-end run (deploy → ingest → transform → validate):
+
+![End to end](docs/images/cli-pipeline.png)
+
 ## Architecture
 
 ```

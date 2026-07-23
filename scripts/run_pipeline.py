@@ -44,7 +44,7 @@ tables:
 
 
 def run(step: str, *args: str) -> None:
-    logger.info("▶ %s", step)
+    logger.info("> %s", step)
     result = subprocess.run([PY, *args], cwd=ROOT)
     if result.returncode != 0:
         logger.error("step failed (exit %d): %s", result.returncode, step)
@@ -82,7 +82,7 @@ def main() -> int:
     # 5. Validate
     run("data quality", "-m", "scripts.data_quality")
 
-    logger.info("✅ pipeline complete — RAW → STAGING → MARTS built and validated")
+    logger.info("[OK] pipeline complete: RAW -> STAGING -> MARTS built and validated")
     return 0
 
 
