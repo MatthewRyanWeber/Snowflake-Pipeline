@@ -129,6 +129,25 @@ def test_incremental_resumes_from_watermark(tmp_path):
 
 # --- file source (offline end-to-end) ---
 
+def test_sqlite_source_reads_and_filters(tmp_path):
+    import sqlite3
+    from loader.source_sqlite import SqliteSource
+    db = tmp_path / "t.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE patients (patient_id TEXT, ssn TEXT)")
+    con.executemany("INSERT INTO patients VALUES (?,?)",
+                    [(f"PAT-{i:03d}", "123-45-6789") for i in range(1, 6)])
+    con.commit(); con.close()
+
+    src = SqliteSource(db).connect()
+    rows = [r for b in src.fetch_batches("patients", "patient_id", None, 2) for r in b]
+    assert len(rows) == 5 and rows[0]["patient_id"] == "PAT-001"
+    # incremental filter
+    rows2 = [r for b in src.fetch_batches("patients", "patient_id", "PAT-003", 10) for r in b]
+    assert [r["patient_id"] for r in rows2] == ["PAT-004", "PAT-005"]
+    src.close()
+
+
 def test_file_source_reads_sample_csv():
     sample = Path(__file__).resolve().parents[1] / "sql/10_ingest/samples/patients.csv"
     if not sample.exists():

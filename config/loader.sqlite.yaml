@@ -1,0 +1,24 @@
+# Loader config using a real SQLite database as the relational source (no driver install).
+# Build the db first:  python scripts/csv_to_sqlite.py --csv data/synthea/patients.csv \
+#                        --db data/synthea/patients.db --table patients
+
+source:
+  type: sqlite
+  path: data/synthea/patients.db
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients
+    target: PATIENTS_SQL_DEMO
+    hwm_column: patient_id
+    batch_size: 100
+    mask:
+      ssn: ssn
+      phone: phone
