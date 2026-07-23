@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Unit tests + offline dry-run need only pyyaml + pytest (no Snowflake driver).
+      - name: Install test deps
+        run: pip install pyyaml pytest
+
+      - name: Unit tests
+        run: python -m pytest tests/ -q
+
+      - name: Shell syntax (deploy.sh)
+        run: bash -n scripts/deploy.sh
+
+      - name: Loader offline dry-run (masking + flow, no DB)
+        run: python -m loader --dry-run --config config/loader.sample.yaml
+
+      - name: Data generator smoke
+        run: python scripts/generate_synthetic_data.py --num-patients 20 --out-dir /tmp/gen
+
+  # Live deploy + validation would run here on a protected environment using repo secrets
+  # (SNOWFLAKE_ACCOUNT / USER / PASSWORD) to build ~/.snowflake/connections.toml, then:
+  #   python scripts/run_sql.py --dir sql/00_setup
+  #   python scripts/data_quality.py
+  # Omitted from PR CI so no credentials are required to validate the code.
