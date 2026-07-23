@@ -83,6 +83,20 @@ class SnowflakeSink:
         logger.debug("insert %d rows -> %s.%s", len(rows), self.schema, table)
         return len(rows)
 
+    def log_transfer(self, run_id, source, target, rows_read, rows_written) -> None:
+        """Record one transfer in the native audit table GOV.LOAD_LOG (best-effort)."""
+        try:
+            cur = self._conn.cursor()
+            cur.execute(
+                f"INSERT INTO {self.database}.GOV.LOAD_LOG "
+                "(run_id, source, target, rows_read, rows_written, loaded_by) "
+                "SELECT %s, %s, %s, %s, %s, CURRENT_USER()",
+                (run_id, source, target, rows_read, rows_written),
+            )
+            cur.close()
+        except Exception as exc:  # noqa: BLE001 - logging must never fail the load
+            logger.warning("could not write transfer log: %s", exc)
+
     def close(self):
         if self._conn is not None:
             self._conn.close()

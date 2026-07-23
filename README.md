@@ -1,19 +1,25 @@
 # Snowflake Pipeline
 
-A governance-aware, portfolio-grade **Snowflake data pipeline**. It **moves data** from
-source systems (SQL Server, Oracle, files, S3) into Snowflake — ingesting, masking PII, and
-loading it incrementally into a governed **RAW → STAGING → MARTS** dimensional model that
-downstream BI tools can query.
+A governance-aware, portfolio-grade **fully-in-Snowflake data pipeline**. It **moves data**
+from source systems (SQL Server, Oracle, files, S3) into Snowflake, then does **everything
+else natively inside Snowflake**: transform, orchestration, data governance, and audit. The
+only external component is the connector that extracts rows from a source database (Snowflake
+cannot reach an on-prem/local DB directly — true of any Snowflake pipeline).
+
+- **Transform in Snowflake:** stored procedures on a Streams + Tasks DAG, plus declarative
+  **Dynamic Tables** (Snowflake-maintained, no external orchestration).
+- **Governance in Snowflake:** native **Dynamic Data Masking** policies + RBAC. PII is masked
+  by policy at query time; only an authorized `PII_READER` role sees it in the clear.
+- **Audit in Snowflake:** every transfer is logged to `GOV.LOAD_LOG` (plus native
+  `COPY_HISTORY` / `ACCESS_HISTORY`).
 
 **The app moves and structures data — it does not compute analytics.** Aggregation and
 reporting are left to the BI/query layer on top of the model.
 
-**Standalone / CLI only — no web interface.** Everything runs from Python command-line
-modules; orchestration is Snowflake-native (Snowpipe → Streams → Tasks), with GitHub Actions
-for deploy + validation.
+**Standalone / CLI only — no web interface.** Verified live against a local SQL Server.
 
-> Data is fully synthetic — no real records. PII masking and governance controls are built
-> and demonstrated as if it were production data.
+> Data is fully synthetic — no real records. Masking and governance controls are enforced by
+> Snowflake as if it were production data.
 
 ## Demo
 
@@ -35,6 +41,21 @@ connector). Objects created:
 | **Tasks** | `t_ingest → t_build_marts` | scheduled, stream-gated DAG |
 | **Snowpipe** | `RAW.patients_pipe`, `encounters_pipe` | file auto-ingest (S3 event → SQS) |
 | **UDFs** | `STAGING.mask_ssn`, `mask_phone` | in-warehouse PII masking |
+| **Masking Policies** | `GOV.mask_ssn`, `mask_phone` | Dynamic Data Masking — role-based governance |
+| **Dynamic Tables** | `STAGING.dt_*` | declarative, Snowflake-maintained transform |
+
+## Data governance (native, verified live)
+
+PII is stored in RAW and **masked by Snowflake policy at query time**, not by the app:
+
+```
+-- same row, two roles:
+role PIPELINE_ROLE / ACCOUNTADMIN  ->  ssn = XXX-XX-2073   (masked)
+role PII_READER                    ->  ssn = 718-70-2073   (clear, authorized)
+```
+
+Every load is recorded in `GOV.LOAD_LOG` (source, target, rows, user, timestamp). Deploy the
+governance layer with `python -m scripts.run_sql --dir sql/40_native`.
 
 ## CLI in action
 

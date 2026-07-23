@@ -7,6 +7,7 @@ A real run is incremental (high-water-mark) and safe to re-run without duplicate
 import argparse
 import logging
 import sys
+import uuid
 from pathlib import Path
 
 from . import __version__
@@ -69,6 +70,11 @@ def main(argv=None) -> int:
                 sink = SnowflakeSink(sf["connection"], sf["database"], sf["schema"]).connect()
                 try:
                     results = run(source, sink, watermarks, tables, salt, dry_run=False)
+                    # Log each transfer to the native audit table (GOV.LOAD_LOG).
+                    run_id = uuid.uuid4().hex[:12]
+                    src_label = cfg.get("source", {}).get("type", "source")
+                    for r in results:
+                        sink.log_transfer(run_id, src_label, r.table, r.rows_read, r.rows_written)
                 finally:
                     sink.close()
                     source.close()

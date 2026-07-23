@@ -57,14 +57,23 @@ schedule, stream-gated) moves data STAGING → MARTS. `BI` reads `MARTS`.
    by `MERGE` with an SCD2-aware patient join.
 5. **Serve.** BI queries MARTS.
 
-## RBAC
+## RBAC + native governance
 
 | Object | Owner / grant |
 |---|---|
 | `PIPELINE_ROLE` | custom functional role, parented under `SYSADMIN` |
+| `PII_READER` | role authorized to view unmasked PII (everyone else is masked) |
 | `PIPELINE_WH`, `HEALTH_ANALYTICS`, schemas | owned by `PIPELINE_ROLE` |
 | `EXECUTE TASK`, `EXECUTE MANAGED TASK` | granted on account to `PIPELINE_ROLE` |
 | Credentials | `~/.snowflake/connections.toml` / `~/.snowsql/config` — never in repo |
+
+**Governance runs in Snowflake, not the app** (`sql/40_native/`):
+- **Dynamic Data Masking policies** (`GOV.mask_ssn`, `GOV.mask_phone`) on the RAW PII columns.
+  PII is stored as-is and masked at query time by role — `PII_READER` sees clear, all other
+  roles see masked. Verified live (same row: `XXX-XX-2073` vs `718-70-2073`).
+- **Transfer/audit log** (`GOV.LOAD_LOG`): every load records source, target, rows, user, time.
+- **Dynamic Tables** (`STAGING.dt_*`): declarative transform Snowflake maintains on a target
+  lag — no external orchestration. PII materializes masked (owner role sees masked via policy).
 
 ## Key decisions & tradeoffs
 
