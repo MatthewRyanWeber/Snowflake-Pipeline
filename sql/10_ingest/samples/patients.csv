@@ -1,0 +1,6 @@
+patient_id,first_name,last_name,birth_date,gender,ssn,address,city,state,zip,phone
+PAT-000001,Robert,Miller,1998-05-25,M,174-78-2542,5992 Martinez St,New York,CA,14313,(419) 238-2408
+PAT-000002,Elizabeth,Nguyen,1980-12-04,M,195-44-8767,1065 Smith St,Hartford,IL,16602,(791) 897-8301
+PAT-000003,Michael,Miller,1949-04-15,F,749-61-2019,3123 Johnson St,Newark,TX,13219,(366) 312-6571
+PAT-000004,Yuki,Miller,2010-03-08,M,589-32-8109,5448 Johnson St,Boston,NJ,13588,(611) 961-2391
+PAT-000005,Maria,Patel,1960-01-26,M,823-65-9447,6617 Garcia St,Boston,CT,09207,(565) 526-2510

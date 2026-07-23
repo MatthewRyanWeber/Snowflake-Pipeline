@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 #
-# Phase 0 · Idempotent deploy of the Snowflake environment.
-# Runs every sql/00_setup/*.sql in numeric order via SnowSQL.
+# Idempotent deploy of a Snowflake phase directory.
+# Runs every top-level *.sql in --dir (default sql/00_setup) in filename order via SnowSQL.
 #
 # Credentials NEVER live in this repo — they come from a named connection in
 # ~/.snowsql/config. Object names come from config/pipeline.conf.
 #
 # Usage:
-#   scripts/deploy.sh [--connection NAME] [--config PATH] [--dry-run]
+#   scripts/deploy.sh [--dir PATH] [--connection NAME] [--config PATH] [--dry-run]
 #
+#   --dir          SQL directory to run, in filename order (default: sql/00_setup).
+#                  Phase 1 ingestion:  --dir sql/10_ingest
 #   --dry-run      Print what would run (resolved command + SQL) without executing.
 #   --connection   Override SF_CONNECTION from the config file.
 #   --config       Path to the config file (default: config/pipeline.conf).
 #
+# Only top-level *.sql in the directory run; subdirs (e.g. manual/) are skipped.
 # Target shell: bash on WSL2 / Linux.
 
 set -euo pipefail
@@ -20,18 +23,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONFIG_FILE="$REPO_ROOT/config/pipeline.conf"
-SETUP_DIR="$REPO_ROOT/sql/00_setup"
+DEPLOY_DIR="$REPO_ROOT/sql/00_setup"
 DRY_RUN=0
 CONNECTION_OVERRIDE=""
 
 log() { printf '%s [deploy] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
 
-usage() { sed -n '3,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '3,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run)     DRY_RUN=1 ;;
+    --dir)         DEPLOY_DIR="${2:-}"; shift ;;
     --connection)  CONNECTION_OVERRIDE="${2:-}"; shift ;;
     --config)      CONFIG_FILE="${2:-}"; shift ;;
     -h|--help)     usage; exit 0 ;;
@@ -61,6 +65,11 @@ SNOWSQL_VARS=(
   -D "sf_schema_raw=$SF_SCHEMA_RAW"
   -D "sf_schema_staging=$SF_SCHEMA_STAGING"
   -D "sf_schema_marts=$SF_SCHEMA_MARTS"
+  # Phase 1 (ingestion) — passed always; SnowSQL ignores unused variables.
+  -D "sf_storage_integration=${SF_STORAGE_INTEGRATION:-}"
+  -D "sf_stage=${SF_STAGE:-}"
+  -D "sf_s3_url=${SF_S3_URL:-}"
+  -D "sf_storage_aws_role_arn=${SF_STORAGE_AWS_ROLE_ARN:-}"
 )
 
 if [ "$DRY_RUN" -eq 0 ]; then
@@ -68,13 +77,15 @@ if [ "$DRY_RUN" -eq 0 ]; then
     || die "snowsql not found on PATH. Install SnowSQL and configure connection '$CONNECTION' in ~/.snowsql/config."
 fi
 
+[ -d "$DEPLOY_DIR" ] || die "deploy dir not found: $DEPLOY_DIR"
 shopt -s nullglob
-files=("$SETUP_DIR"/*.sql)
+files=("$DEPLOY_DIR"/*.sql)
 shopt -u nullglob
-[ "${#files[@]}" -gt 0 ] || die "no .sql files in $SETUP_DIR"
+[ "${#files[@]}" -gt 0 ] || die "no .sql files in $DEPLOY_DIR"
 IFS=$'\n' files=($(sort <<<"${files[*]}")); unset IFS
 
 log "connection : $CONNECTION"
+log "dir        : $DEPLOY_DIR"
 log "database   : $SF_DATABASE  (schemas: $SF_SCHEMA_RAW, $SF_SCHEMA_STAGING, $SF_SCHEMA_MARTS)"
 log "warehouse  : $SF_WAREHOUSE ($SF_WH_SIZE, auto-suspend ${SF_WH_AUTO_SUSPEND}s)"
 log "role       : $SF_ROLE"

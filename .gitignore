@@ -29,12 +29,15 @@ venv/
 .coverage
 htmlcov/
 
-# Data — keep synthetic data out of git unless explicitly sampled
+# Data — keep generated synthetic data out of git (it's regenerable via the generator)
 data/
 *.csv
 *.parquet
 !tests/**/*.csv
 !docs/**/*.csv
+# ...but keep the tiny committed sample set for repo readability
+!sql/10_ingest/samples/
+!sql/10_ingest/samples/*.csv
 
 # OS / editor
 .DS_Store

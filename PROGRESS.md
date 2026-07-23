@@ -12,7 +12,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 | Phase | Title | Status |
 |---|---|---|
 | 0 | Foundation | 🟡 Scripts written + dry-run verified; live deploy pending trial account |
-| 1 | Snowpipe ingestion (files → RAW) | ⬜ Not started |
+| 1 | Snowpipe ingestion (files → RAW) | 🟡 Pre-built offline; live deploy + AWS S3/SQS pending |
 | 2 | Relational source loader (Python) | ⬜ Not started |
 | 3 | Streams + Tasks → star schema | ⬜ Not started |
 | 4 | Snowpark transformation | ⬜ Not started |
@@ -39,13 +39,14 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 
 ## Phase 1 — Snowpipe ingestion (files → RAW, incl. semi-structured)
 
-- [ ] Synthea synthetic data generated as CSV **and** JSON
-- [ ] External S3 stage + file format per type + RAW target tables
-- [ ] JSON landed into `VARIANT`; dot / lateral-flatten query examples
-- [ ] Snowpipe auto-ingest configured (S3 event → SQS), documented end to end
-- [ ] Manual `COPY INTO` fallback path for troubleshooting demos
-- [ ] Deliverables: `sql/10_ingest/`, `docs/snowpipe-setup.md`, sample files, flatten queries
-- [ ] **Acceptance:** file dropped in S3 lands rows in RAW < 1 min, no manual step; JSON queryable via VARIANT
+- [x] Synthetic data generated as CSV **and** JSON *(`scripts/generate_synthetic_data.py`, stdlib, seeded, tested; Synthea-shaped stand-in — swap real Synthea before demo)*
+- [x] External S3 stage + file format per type + RAW target tables *(`sql/10_ingest/00–03`, written)*
+- [x] JSON landed into `VARIANT`; dot / lateral-flatten query examples *(`manual/flatten_queries.sql`)*
+- [x] Snowpipe auto-ingest DDL + end-to-end docs *(`04_snowpipe.sql`, `docs/snowpipe-setup.md`)*
+- [x] Manual `COPY INTO` fallback path *(`manual/copy_manual.sql`)*
+- [x] Deliverables: `sql/10_ingest/`, `docs/snowpipe-setup.md`, sample files (`sql/10_ingest/samples/`), flatten queries
+- [ ] **AWS side:** S3 bucket + IAM role + storage-integration trust + SQS event notification ← **YOU** (see `docs/snowpipe-setup.md`)
+- [ ] **Acceptance:** file dropped in S3 lands rows in RAW < 1 min, no manual step; JSON queryable via VARIANT *(blocked on live account + AWS above)*
 
 ## Phase 2 — Relational source loader (Python)
 
@@ -109,3 +110,5 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 
 - 2026-07-22 — Phase 0 repo skeleton built; private GitHub repo created + pushed; `PROGRESS.md` added.
 - 2026-07-22 — **Relocated project to `C:\snowflake-pipeline`** (canonical local path). Old copy under the OneDrive-redirected Desktop churned/wiped local files mid-build; GitHub remote was the safety net. Do not work out of `C:\Users\matt\OneDrive\Desktop\files` — OneDrive folder redirection is active on this machine.
+- 2026-07-22 — Phase 0 SQL + `deploy.sh` written, dry-run verified. `.gitattributes` added (LF for WSL2).
+- 2026-07-22 — **Phase 1 pre-built offline** (no live Snowflake yet): generator + tests (4 green), `sql/10_ingest/` DDL, `manual/` copy+flatten, `docs/snowpipe-setup.md`, committed sample data. `deploy.sh` generalized with `--dir`. Live deploy + AWS S3/SQS wiring pending.
