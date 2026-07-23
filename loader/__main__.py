@@ -50,16 +50,22 @@ def main(argv=None) -> int:
     configure(verbose=args.verbose)
     cfg = load_config(args.config)
 
-    tables = cfg["tables"]
+    salt = cfg.get("masking", {}).get("salt", DEFAULT_SALT)
+    sf = cfg["snowflake"]
+
+    # Metadata-driven: read the work-list from GOV.SOURCES if a control group is configured;
+    # otherwise use the tables listed in the config file.
+    if cfg.get("control"):
+        from .control import load_tables_from_control
+        tables = load_tables_from_control(sf, cfg["control"]["source_group"])
+    else:
+        tables = cfg["tables"]
     if args.table:
         wanted = set(args.table)
         tables = [t for t in tables if t["name"] in wanted]
-        if not tables:
-            logger.error("no configured tables match --table %s", args.table)
-            return 2
-
-    salt = cfg.get("masking", {}).get("salt", DEFAULT_SALT)
-    sf = cfg["snowflake"]
+    if not tables:
+        logger.error("no tables to load (control group empty, or --table matched nothing)")
+        return 2
 
     # Build source/sink lazily; --dry-run needs neither a live sink nor its driver.
     watermarks = WatermarkStore(args.state)

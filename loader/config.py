@@ -24,9 +24,14 @@ def _validate(cfg: dict) -> None:
         if key not in cfg["snowflake"]:
             raise ValueError(f"config.snowflake missing '{key}'")
 
+    # Either a static 'tables' list OR a 'control' block (metadata-driven from GOV.SOURCES).
+    if cfg.get("control"):
+        if "source_group" not in cfg["control"]:
+            raise ValueError("config.control missing 'source_group'")
+        return
     tables = cfg.get("tables")
     if not tables:
-        raise ValueError("config must define at least one table under 'tables'")
+        raise ValueError("config must define 'tables' or a 'control' section")
     for i, t in enumerate(tables):
         for key in ("name", "hwm_column"):
             if key not in t:

@@ -1,0 +1,11 @@
+# Metadata-driven ingestion: the table work-list comes from GOV.SOURCES, not this file.
+# Add a table to the pipeline by INSERTing a row into GOV.SOURCES (no code/config change).
+source:
+  type: sqlserver
+  conn_str: "DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;DATABASE=HEALTH_SOURCE;Trusted_Connection=yes;TrustServerCertificate=yes"
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+control:
+  source_group: sqlserver_health

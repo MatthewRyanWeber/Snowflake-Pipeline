@@ -46,6 +46,7 @@ connector). Objects created:
 | **Tags** | `GOV.pii` | tag a column → auto-masked (governance scales by tagging) |
 | **Resource Monitor** | `PIPELINE_RM` | credit quota: notify + suspend before overspend |
 | **Alerts** | `GOV.task_failure_alert` | fires on Task failures → `GOV.alert_log` |
+| **Control table** | `GOV.SOURCES` | metadata-driven work-list — add a table = add a row |
 
 ## Data governance (native, verified live)
 
@@ -62,8 +63,12 @@ governance layer with `python -m scripts.run_sql --dir sql/40_native`.
 
 ## Scaling & operations
 
-Built to grow without re-architecting (`sql/40_native/03_scaling.sql` + loader):
+Built to grow without re-architecting (`sql/40_native/` + loader):
 
+- **Metadata-driven ingestion** — the table work-list lives in a control table
+  (`GOV.SOURCES`), not code. Adding a table to the pipeline is an `INSERT`. Verified live:
+  inserting one row made the next run load a second table (in parallel). Connection secrets
+  stay in config; only *what to load* is data-driven.
 - **Cost guardrail** — a `RESOURCE MONITOR` caps credits and suspends the warehouse before a
   runaway load drains the account.
 - **Governance that scales by tagging** — a `TAG` bound to a masking policy; tag any new PII
