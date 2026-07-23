@@ -1,0 +1,28 @@
+# Loader config for a PostgreSQL source. Password comes from an ENV VAR (never the file):
+#   export PGPASSWORD=...            (or set password_env to a different variable name)
+# Requires the psycopg2 driver:  pip install psycopg2-binary
+
+source:
+  type: postgres
+  host: 127.0.0.1
+  port: 5432
+  dbname: srcdb
+  user: postgres
+  password_env: PGPASSWORD
+  # dsn: "postgresql://user@host:5432/srcdb"   # alternatively, a full libpq DSN
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients
+    target: PATIENTS_CSV
+    hwm_column: ts
+    batch_size: 5000
+    mask:
+      ssn: ssn

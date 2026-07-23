@@ -1,0 +1,27 @@
+# Loader config for a MySQL / MariaDB source. Password comes from an ENV VAR (never the file):
+#   export MYSQL_PASSWORD=...        (or set password_env to a different variable name)
+# Requires the PyMySQL driver:  pip install pymysql
+
+source:
+  type: mysql
+  host: 127.0.0.1
+  port: 3306
+  database: srcdb
+  user: root
+  password_env: MYSQL_PASSWORD
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients
+    target: PATIENTS_CSV
+    hwm_column: ts
+    batch_size: 5000
+    mask:
+      ssn: ssn

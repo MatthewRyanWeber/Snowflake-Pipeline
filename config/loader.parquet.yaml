@@ -1,0 +1,24 @@
+# Loader config for a Parquet source (columnar data-lake file). pyarrow ships with the
+# connector's [pandas] extra, so no extra install is needed.
+# The file is sorted by hwm_column before batching, so it need not be pre-sorted.
+
+source:
+  type: parquet
+  path: data/synthea/patients.parquet
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients            # informational for a single-file source
+    target: PATIENTS_CSV
+    hwm_column: patient_id
+    batch_size: 5000
+    mask:
+      ssn: ssn
+      phone: phone

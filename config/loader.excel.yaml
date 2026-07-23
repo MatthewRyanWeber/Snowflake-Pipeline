@@ -1,0 +1,23 @@
+# Loader config for an Excel (.xlsx) source. Requires openpyxl:  pip install openpyxl
+# The table name selects the worksheet (falls back to the active sheet); row 1 is the header.
+
+source:
+  type: excel
+  path: data/synthea/patients.xlsx
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients            # worksheet name
+    target: PATIENTS_CSV
+    hwm_column: patient_id
+    batch_size: 5000
+    mask:
+      ssn: ssn
+      phone: phone

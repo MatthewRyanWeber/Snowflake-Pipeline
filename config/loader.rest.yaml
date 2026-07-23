@@ -1,0 +1,29 @@
+# Loader config for a REST API source (paginated JSON over HTTP).
+# Optional bearer token comes from an ENV VAR (never the file):  export API_TOKEN=...
+# Requires requests:  pip install requests
+#
+# The loader GETs {base_url}/{table}?limit=&offset= and reads a JSON array (or records_key).
+# Incremental loads add a '<hwm>_gt' filter param (override with since_param).
+
+source:
+  type: rest
+  base_url: https://api.example.com/v1
+  token_env: API_TOKEN          # optional; omit for a public API
+  records_key: data             # optional; set if rows are nested under a key, e.g. {"data": [...]}
+  # since_param: updated_after   # optional; override the default '<hwm>_gt' filter name
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients             # resource path appended to base_url
+    target: PATIENTS_CSV
+    hwm_column: updated_at
+    batch_size: 500            # page size
+    mask:
+      ssn: ssn

@@ -82,9 +82,8 @@ def main(argv=None) -> int:
                     source.close()
             else:
                 from .deps import check_live_dependencies
-                # Only require the SQL Server driver when the source actually needs it.
-                needs_odbc = cfg.get("source", {}).get("type", "sqlserver") == "sqlserver"
-                check_live_dependencies(require_source=needs_odbc)
+                # Require only the driver the configured source actually needs.
+                check_live_dependencies(cfg.get("source", {}).get("type", "sqlserver"))
                 from .sink_snowflake import SnowflakeSink
 
                 run_id = uuid.uuid4().hex[:12]
@@ -140,6 +139,29 @@ def _build_source(cfg: dict):
     if src_type == "sqlserver":
         from .source_sqlserver import SqlServerSource
         return SqlServerSource(dsn=src.get("dsn"), conn_str=src.get("conn_str"))
+    if src_type == "postgres":
+        from .source_postgres import PostgresSource
+        return PostgresSource(dsn=src.get("dsn"), host=src.get("host"),
+                              port=src.get("port", 5432), dbname=src.get("dbname"),
+                              user=src.get("user"),
+                              password_env=src.get("password_env", "PGPASSWORD"))
+    if src_type == "mysql":
+        from .source_mysql import MySqlSource
+        return MySqlSource(host=src.get("host"), port=src.get("port", 3306),
+                           database=src.get("database"), user=src.get("user"),
+                           password_env=src.get("password_env", "MYSQL_PASSWORD"))
+    if src_type == "rest":
+        from .source_rest import RestSource
+        return RestSource(base_url=src["base_url"], token_env=src.get("token_env"),
+                          records_key=src.get("records_key"),
+                          since_param=src.get("since_param"),
+                          timeout=src.get("timeout", 30))
+    if src_type == "excel":
+        from .source_excel import ExcelSource
+        return ExcelSource(src["path"])
+    if src_type == "parquet":
+        from .source_parquet import ParquetSource
+        return ParquetSource(src["path"])
     raise ValueError(f"unknown source.type: {src_type!r}")
 
 

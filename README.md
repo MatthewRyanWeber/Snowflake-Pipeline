@@ -1,10 +1,11 @@
 # Snowflake Pipeline
 
 A governance-aware, portfolio-grade **fully-in-Snowflake data pipeline**. It **moves data**
-from source systems (SQL Server, Oracle, files, S3) into Snowflake, then does **everything
-else natively inside Snowflake**: transform, orchestration, data governance, and audit. The
-only external component is the connector that extracts rows from a source database (Snowflake
-cannot reach an on-prem/local DB directly — true of any Snowflake pipeline).
+from many source systems (SQL Server, PostgreSQL, MySQL, Oracle, SQLite, REST APIs, Excel,
+Parquet, CSV, S3) into Snowflake, then does **everything else natively inside Snowflake**:
+transform, orchestration, data governance, and audit. The only external component is the
+connector that extracts rows from a source (Snowflake cannot reach an on-prem/local DB
+directly — true of any Snowflake pipeline).
 
 - **Transform in Snowflake:** stored procedures on a Streams + Tasks DAG, plus declarative
   **Dynamic Tables** (Snowflake-maintained, no external orchestration).
@@ -29,6 +30,9 @@ Every layer below was **run against real infrastructure**, not just unit-tested:
   → governance) deploys and runs; the star schema builds from loaded data.
 - **Real source database** — data extracted from a **local SQL Server** through the connector
   into `RAW`, incrementally (high-water-mark, safe to re-run without duplicates).
+- **9 pluggable sources** — the same incremental contract across SQL Server, PostgreSQL, MySQL,
+  Oracle, SQLite, REST APIs, Excel, Parquet, and CSV. Postgres + MySQL verified live against
+  Docker containers; REST/Excel/Parquet covered by the test suite. See [`docs/sources.md`](docs/sources.md).
 - **Native data masking** — the same SSN returns `XXX-XX-2073` to `PIPELINE_ROLE` and
   `718-70-2073` to `PII_READER`, enforced by a Snowflake masking policy at query time.
 - **Transfer audit** — every load is written to `GOV.LOAD_LOG` (source, target, rows, user, time).
@@ -137,7 +141,7 @@ End-to-end run (deploy → ingest → transform → load):
 | `sql/00_setup/` | Idempotent SnowSQL: role, warehouse, database, schemas. |
 | `sql/10_ingest/` | Stages, file formats, RAW tables, Snowpipe. |
 | `sql/30_transform/` | Streams, Tasks DAG, STAGING → MARTS star schema. |
-| `loader/` | Python batch loader for relational sources (SQL Server, Oracle, SQLite, files). |
+| `loader/` | Python batch loader — 9 pluggable sources (SQL Server, Postgres, MySQL, Oracle, SQLite, REST, Excel, Parquet, CSV). See [`docs/sources.md`](docs/sources.md). |
 | `scripts/` | `run_sql.py` (deploy), `run_pipeline.py` (end-to-end), loaders, data-quality, teardown. |
 | `config/` | Table lists, mappings, schedules (no secrets). |
 | `docs/` | Functional spec, technical design, tuning case study, diagrams. |

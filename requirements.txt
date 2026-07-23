@@ -4,6 +4,11 @@ pyyaml>=6.0
 snowflake-connector-python[pandas]>=3.7   # [pandas] pulls pandas+pyarrow for write_pandas
 pyodbc>=5.1
 oracledb>=2.0        # optional: Oracle source (thin mode, no client install)
+psycopg2-binary>=2.9 # optional: PostgreSQL source
+pymysql>=1.1         # optional: MySQL / MariaDB source
+requests>=2.31       # optional: REST API source
+openpyxl>=3.1        # optional: Excel (.xlsx) source
+# pyarrow arrives via snowflake-connector-python[pandas] above; also powers the Parquet source
 
 # Dev / test
 pytest>=8.0
