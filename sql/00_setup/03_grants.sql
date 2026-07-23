@@ -24,6 +24,8 @@ GRANT USAGE, CREATE TABLE, CREATE VIEW, CREATE TASK
 GRANT SELECT, INSERT, UPDATE, DELETE ON FUTURE TABLES IN SCHEMA &{sf_database}.&{sf_schema_marts} TO ROLE &{sf_role};
 GRANT SELECT ON FUTURE VIEWS IN SCHEMA &{sf_database}.&{sf_schema_marts} TO ROLE &{sf_role};
 
--- WHY: Tasks run as the role that owns them; EXECUTE TASK is an account-level privilege.
+-- WHY: Tasks run as the role that owns them; these are account-level task privileges.
+-- EXECUTE TASK covers warehouse-backed tasks; EXECUTE MANAGED TASK covers serverless ones.
 USE ROLE ACCOUNTADMIN;
 GRANT EXECUTE TASK ON ACCOUNT TO ROLE &{sf_role};
+GRANT EXECUTE MANAGED TASK ON ACCOUNT TO ROLE &{sf_role};

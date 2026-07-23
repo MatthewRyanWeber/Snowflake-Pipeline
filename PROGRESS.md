@@ -14,7 +14,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 | 0 | Foundation | ✅ **Deployed + validated LIVE** on account fjliqhb-of64443 |
 | 1 | Snowpipe ingestion (files → RAW) | ✅ RAW tables + VARIANT/FLATTEN verified LIVE; ⬜ S3 *auto-ingest* needs AWS |
 | 2 | Relational source loader (Python) | ✅ **Verified LIVE**: 300 rows loaded, masked, incremental re-run = 0 dupes |
-| 3 | Streams + Tasks → star schema | ⬜ Not started |
+| 3 | Streams + Tasks → star schema | ✅ **Built + verified LIVE** (star+snowflake, SCD2, 10-task DAG propagates in 18s) |
 | 4 | Snowpark transformation | ⬜ Not started |
 | 5 | Performance tuning case study | ⬜ Not started |
 | 6 | Docs, spec, demo | ⬜ Not started |
@@ -61,14 +61,14 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 
 ## Phase 3 — Streams + Tasks → star schema (centerpiece)
 
-- [ ] Streams on RAW tables to capture change
-- [ ] STAGING transforms (typing, dedup, conformance) consuming streams
-- [ ] MARTS as star schema: fact table(s) + conformed dimensions
-- [ ] One deliberately **snowflaked** dimension (location → facility → region)
-- [ ] Task DAG (root + dependents) on schedule: staging → marts
-- [ ] SCD Type 2 on at least one dimension
-- [ ] Deliverables: `sql/30_transform/`, `docs/data-model.md` (ER diagram)
-- [ ] **Acceptance:** raw rows flow automatically streams → staging → marts on schedule; star + snowflake both queryable; SCD2 history verifiable
+- [x] Streams on RAW tables to capture change *(`00_streams.sql`, APPEND_ONLY, live)*
+- [x] STAGING transforms (typing, dedup, flatten) *(`01_staging.sql` + `04_build.sql`, live)*
+- [x] MARTS as star schema: fact + conformed dimensions *(`02`/`03`, live; FACT_ENCOUNTER 1024)*
+- [x] One deliberately **snowflaked** dimension (location → facility → region) *(verified via live region rollup)*
+- [x] Task DAG (root + dependents) on schedule: staging → marts *(`05_tasks.sql`, 10 tasks, live)*
+- [x] SCD Type 2 on at least one dimension *(DIM_PATIENT; relocation test produced 2 versions live)*
+- [x] Deliverables: `sql/30_transform/`, `docs/data-model.md`
+- [x] **Acceptance (LIVE):** injected new patient+encounter → DAG propagated to FACT in **18s**; star + snowflake both queried; SCD2 history verified. *(bug caught+fixed live: SCD2 initial valid_from epoch; serverless→warehouse task grant)*
 - [ ] *(Optional 3b: rebuild STAGING→MARTS as dbt models with tests + lineage)*
 
 ## Phase 4 — Snowpark transformation
@@ -116,3 +116,4 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - 2026-07-22 — **Phase 1 pre-built offline** (no live Snowflake yet): generator + tests (4 green), `sql/10_ingest/` DDL, `manual/` copy+flatten, `docs/snowpipe-setup.md`, committed sample data. `deploy.sh` generalized with `--dir`. Live deploy + AWS S3/SQS wiring pending.
 - 2026-07-22 — **Phase 2 built** (`loader/`, 15 tests green, offline dry-run works).
 - 2026-07-22 — **LIVE account connected** (fjliqhb-of64443, ACCOUNTADMIN, AWS_CA_CENTRAL_1). Creds in `~/.snowflake/connections.toml` (outside repo). Added `scripts/run_sql.py` (connector-based deploy, no SnowSQL needed) + `scripts/load_internal_stage.py` (no-AWS PUT+COPY). **Verified LIVE:** Phase 0 full deploy; Phase 1 RAW tables + VARIANT/FLATTEN (1023 encounters); Phase 2 loader (300 patients, masked, incremental). Data via `data/synthea` (gitignored) + `config/loader.local.yaml` (gitignored).
+- 2026-07-22 — **Phase 3 built + verified LIVE.** `sql/30_transform/` (streams, staging, dims, fact, backfill, 10-task DAG) + `docs/data-model.md`. Star + snowflaked DIM_LOCATION + SCD2 DIM_PATIENT. Two live-caught bugs fixed: SCD2 initial `valid_from` must be epoch (else historical encounters get null patient_sk); child tasks need `WAREHOUSE=` (or EXECUTE MANAGED TASK) — both now set + granted. DAG root left SUSPENDED to save credits (resume: `ALTER TASK staging.t_stage_patients RESUME`). Left-over demo rows in RAW (PAT-000301, ENC-DAGTEST01, PAT-000001 relocated) are harmless.
