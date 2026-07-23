@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import tempfile
+import threading
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class WatermarkStore:
     def __init__(self, path: Path = Path("state/watermarks.json")):
         self.path = Path(path)
         self._data: dict[str, str] = {}
+        self._lock = threading.Lock()   # parallel table loads share one store
         self._load()
 
     def _load(self) -> None:
@@ -34,8 +36,9 @@ class WatermarkStore:
         return self._data.get(table)
 
     def set(self, table: str, value) -> None:
-        self._data[table] = self._normalize(value)
-        self._flush()
+        with self._lock:   # thread-safe: concurrent table loads write distinct keys, one file
+            self._data[table] = self._normalize(value)
+            self._flush()
 
     @staticmethod
     def _normalize(value):

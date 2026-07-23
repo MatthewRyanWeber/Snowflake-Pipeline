@@ -15,10 +15,24 @@ from .config import load_config
 from .lock import FileLock, LockHeldError
 from .logging_config import configure
 from .masking import DEFAULT_SALT
-from .pipeline import run
+from .pipeline import load_table, run
 from .watermark import WatermarkStore
 
 logger = logging.getLogger("loader")
+
+
+def _load_one(cfg, sf, table_cfg, watermarks, salt, run_id, src_label):
+    """Load one table with its own source + sink connection — thread-safe for parallel loads."""
+    from .sink_snowflake import SnowflakeSink
+    source = _build_source(cfg).connect()
+    sink = SnowflakeSink(sf["connection"], sf["database"], sf["schema"]).connect()
+    try:
+        res = load_table(source, sink, watermarks, table_cfg, salt, dry_run=False)
+        sink.log_transfer(run_id, src_label, res.table, res.rows_read, res.rows_written)
+        return res
+    finally:
+        sink.close()
+        source.close()
 
 
 def main(argv=None) -> int:
@@ -27,6 +41,8 @@ def main(argv=None) -> int:
     p.add_argument("--dry-run", action="store_true", help="report intended changes, write nothing")
     p.add_argument("--table", action="append", help="limit to named table(s); repeatable")
     p.add_argument("--state", type=Path, default=Path("state/watermarks.json"))
+    p.add_argument("--max-workers", type=int, default=8, help="parallel table-load workers")
+    p.add_argument("--no-parallel", action="store_true", help="load tables sequentially")
     p.add_argument("--verbose", action="store_true")
     p.add_argument("--version", action="version", version=f"loader {__version__}")
     args = p.parse_args(argv)
@@ -65,19 +81,30 @@ def main(argv=None) -> int:
                 check_live_dependencies(require_source=needs_odbc)
                 from .sink_snowflake import SnowflakeSink
 
-                source = _build_source(cfg)
-                source.connect()
-                sink = SnowflakeSink(sf["connection"], sf["database"], sf["schema"]).connect()
-                try:
-                    results = run(source, sink, watermarks, tables, salt, dry_run=False)
-                    # Log each transfer to the native audit table (GOV.LOAD_LOG).
-                    run_id = uuid.uuid4().hex[:12]
-                    src_label = cfg.get("source", {}).get("type", "source")
-                    for r in results:
-                        sink.log_transfer(run_id, src_label, r.table, r.rows_read, r.rows_written)
-                finally:
-                    sink.close()
-                    source.close()
+                run_id = uuid.uuid4().hex[:12]
+                src_label = cfg.get("source", {}).get("type", "source")
+                if len(tables) > 1 and not args.no_parallel:
+                    # Load tables concurrently, each with its own source + sink connection
+                    # (Snowflake connections are not thread-safe). Watermarks are shared but
+                    # locked, and each table writes a distinct key.
+                    import concurrent.futures
+                    workers = min(len(tables), args.max_workers)
+                    logger.info("loading %d tables in parallel (%d workers)", len(tables), workers)
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+                        results = list(pool.map(
+                            lambda t: _load_one(cfg, sf, t, watermarks, salt, run_id, src_label),
+                            tables))
+                else:
+                    # Single connection for the common one-table case (avoids per-table setup).
+                    source = _build_source(cfg).connect()
+                    sink = SnowflakeSink(sf["connection"], sf["database"], sf["schema"]).connect()
+                    try:
+                        results = run(source, sink, watermarks, tables, salt, dry_run=False)
+                        for r in results:
+                            sink.log_transfer(run_id, src_label, r.table, r.rows_read, r.rows_written)
+                    finally:
+                        sink.close()
+                        source.close()
     except LockHeldError as exc:
         logger.error("%s", exc)
         return 3

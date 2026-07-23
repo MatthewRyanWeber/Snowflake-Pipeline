@@ -41,8 +41,11 @@ connector). Objects created:
 | **Tasks** | `t_ingest → t_build_marts` | scheduled, stream-gated DAG |
 | **Snowpipe** | `RAW.patients_pipe`, `encounters_pipe` | file auto-ingest (S3 event → SQS) |
 | **UDFs** | `STAGING.mask_ssn`, `mask_phone` | in-warehouse PII masking |
-| **Masking Policies** | `GOV.mask_ssn`, `mask_phone` | Dynamic Data Masking — role-based governance |
+| **Masking Policies** | `GOV.mask_ssn`, `mask_phone`, `mask_tagged` | Dynamic Data Masking — role-based governance |
 | **Dynamic Tables** | `STAGING.dt_*` | declarative, Snowflake-maintained transform |
+| **Tags** | `GOV.pii` | tag a column → auto-masked (governance scales by tagging) |
+| **Resource Monitor** | `PIPELINE_RM` | credit quota: notify + suspend before overspend |
+| **Alerts** | `GOV.task_failure_alert` | fires on Task failures → `GOV.alert_log` |
 
 ## Data governance (native, verified live)
 
@@ -56,6 +59,19 @@ role PII_READER                    ->  ssn = 718-70-2073   (clear, authorized)
 
 Every load is recorded in `GOV.LOAD_LOG` (source, target, rows, user, timestamp). Deploy the
 governance layer with `python -m scripts.run_sql --dir sql/40_native`.
+
+## Scaling & operations
+
+Built to grow without re-architecting (`sql/40_native/03_scaling.sql` + loader):
+
+- **Cost guardrail** — a `RESOURCE MONITOR` caps credits and suspends the warehouse before a
+  runaway load drains the account.
+- **Governance that scales by tagging** — a `TAG` bound to a masking policy; tag any new PII
+  column and it's masked automatically (no per-column policy). Verified live on `address`.
+- **Load-health view + failure alert** — `GOV.vw_pipeline_health` over the transfer log, and a
+  Snowflake `ALERT` that logs Task failures.
+- **Parallel table loads** — the loader loads multiple tables concurrently, each with its own
+  connection (`--max-workers`, `--no-parallel`). Verified live (2 tables at once).
 
 ## CLI in action
 
