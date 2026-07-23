@@ -45,13 +45,9 @@ class SnowflakeSink:
         if not rows:
             return 0
         # Fast path: write_pandas stages the batch as parquet and COPYs it — far faster than
-        # row-by-row INSERT (which caps out near a few hundred rows/s on a wide table).
-        # Check BOTH deps up front (pandas import succeeding but pyarrow missing would fail
-        # inside write_pandas, past an import-only guard).
-        try:
-            import pandas  # noqa: F401
-            import pyarrow  # noqa: F401
-        except ImportError:
+        # row-by-row INSERT. Needs BOTH pandas and pyarrow; fall back if either is absent.
+        import importlib.util
+        if importlib.util.find_spec("pandas") is None or importlib.util.find_spec("pyarrow") is None:
             return self._write_insert(table, rows)
         return self._write_pandas(table, rows)
 
