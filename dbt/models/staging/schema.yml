@@ -1,0 +1,13 @@
+version: 2
+models:
+  - name: stg_patients
+    description: "Deduped, typed patient snapshot from RAW (PII already masked on load)."
+    columns:
+      - name: patient_id
+        tests: [not_null, unique]
+  - name: stg_encounters
+    columns:
+      - name: encounter_id
+        tests: [not_null]
+      - name: patient_id
+        tests: [not_null]

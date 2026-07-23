@@ -1,0 +1,52 @@
+version: 2
+models:
+  - name: dim_location
+    columns:
+      - name: location_sk
+        tests: [not_null, unique]
+      - name: region
+        tests:
+          - accepted_values:
+              values: ['Northeast', 'West', 'South', 'Midwest', 'Other']
+  - name: dim_facility
+    columns:
+      - name: facility_sk
+        tests: [not_null, unique]
+      - name: location_sk
+        tests:
+          - relationships:
+              to: ref('dim_location')
+              field: location_sk
+  - name: dim_provider
+    columns:
+      - name: provider_sk
+        tests: [not_null, unique]
+  - name: dim_patient
+    columns:
+      - name: patient_sk
+        tests: [not_null, unique]
+  - name: fact_encounter
+    columns:
+      - name: encounter_id
+        tests: [not_null]
+      - name: facility_sk
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_facility')
+              field: facility_sk
+      - name: provider_sk
+        tests:
+          - relationships:
+              to: ref('dim_provider')
+              field: provider_sk
+      - name: date_key
+        tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_key
+      - name: patient_sk
+        tests:
+          - relationships:
+              to: ref('dim_patient')
+              field: patient_sk

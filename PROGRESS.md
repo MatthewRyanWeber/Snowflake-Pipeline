@@ -69,7 +69,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - [x] SCD Type 2 on at least one dimension *(DIM_PATIENT; relocation test produced 2 versions live)*
 - [x] Deliverables: `sql/30_transform/`, `docs/data-model.md`
 - [x] **Acceptance (LIVE):** injected new patient+encounter → DAG propagated to FACT in **18s**; star + snowflake both queried; SCD2 history verified. *(bug caught+fixed live: SCD2 initial valid_from epoch; serverless→warehouse task grant)*
-- [ ] *(Optional 3b: rebuild STAGING→MARTS as dbt models with tests + lineage)*
+- [x] **Optional 3b (dbt): DONE + verified LIVE** — `dbt/` project, snapshot-based SCD2, 6 marts + 3 staging models in a separate `DBT` schema, 20 data tests (incl. referential integrity) all green (`PASS=30`). `docs/dbt.md`.
 
 ## Phase 4 — Snowpark transformation
 
@@ -116,4 +116,5 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - 2026-07-22 — **Phase 1 pre-built offline** (no live Snowflake yet): generator + tests (4 green), `sql/10_ingest/` DDL, `manual/` copy+flatten, `docs/snowpipe-setup.md`, committed sample data. `deploy.sh` generalized with `--dir`. Live deploy + AWS S3/SQS wiring pending.
 - 2026-07-22 — **Phase 2 built** (`loader/`, 15 tests green, offline dry-run works).
 - 2026-07-22 — **LIVE account connected** (fjliqhb-of64443, ACCOUNTADMIN, AWS_CA_CENTRAL_1). Creds in `~/.snowflake/connections.toml` (outside repo). Added `scripts/run_sql.py` (connector-based deploy, no SnowSQL needed) + `scripts/load_internal_stage.py` (no-AWS PUT+COPY). **Verified LIVE:** Phase 0 full deploy; Phase 1 RAW tables + VARIANT/FLATTEN (1023 encounters); Phase 2 loader (300 patients, masked, incremental). Data via `data/synthea` (gitignored) + `config/loader.local.yaml` (gitignored).
+- 2026-07-23 — **Beyond the plan, all verified LIVE:** MARTS analytics/BI views (5); data-quality gate (`scripts/data_quality.py`, 12/12 pass); SQLite relational source (`loader/source_sqlite.py`, real DB engine, 300 rows loaded); GitHub Actions CI (green on push); **dbt project (Phase 3b)** — `dbt build` PASS=30/0 errors with snapshot SCD2 + 20 data tests.
 - 2026-07-22 — **Phase 3 built + verified LIVE.** `sql/30_transform/` (streams, staging, dims, fact, backfill, 10-task DAG) + `docs/data-model.md`. Star + snowflaked DIM_LOCATION + SCD2 DIM_PATIENT. Two live-caught bugs fixed: SCD2 initial `valid_from` must be epoch (else historical encounters get null patient_sk); child tasks need `WAREHOUSE=` (or EXECUTE MANAGED TASK) — both now set + granted. DAG root left SUSPENDED to save credits (resume: `ALTER TASK staging.t_stage_patients RESUME`). Left-over demo rows in RAW (PAT-000301, ENC-DAGTEST01, PAT-000001 relocated) are harmless.

@@ -1,0 +1,8 @@
+version: 2
+sources:
+  - name: raw
+    database: HEALTH_ANALYTICS
+    schema: RAW
+    tables:
+      - name: patients_csv
+      - name: encounters_json

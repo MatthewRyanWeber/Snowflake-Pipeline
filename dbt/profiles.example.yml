@@ -1,0 +1,14 @@
+# Copy to ~/.dbt/profiles.yml and fill credentials (never commit real creds).
+snowflake_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: <org>-<account>       # e.g. fjliqhb-of64443
+      user: <user>
+      password: <password>           # or use key-pair / SSO auth
+      role: PIPELINE_ROLE
+      warehouse: PIPELINE_WH
+      database: HEALTH_ANALYTICS
+      schema: DBT
+      threads: 4
