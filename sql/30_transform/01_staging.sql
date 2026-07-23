@@ -29,7 +29,11 @@ CREATE TABLE IF NOT EXISTS encounters (
   state            STRING,
   duration_minutes NUMBER,
   observation_count NUMBER,
-  condition_count   NUMBER
+  condition_count   NUMBER,
+  payer            STRING,
+  total_charge     NUMBER(12,2),
+  paid_amount      NUMBER(12,2),
+  claim_status     STRING
 );
 
 CREATE TABLE IF NOT EXISTS observations (
@@ -66,7 +70,11 @@ SELECT
   v:provider.state::string         AS state,
   DATEDIFF('minute', v:start::timestamp_ntz, v:stop::timestamp_ntz) AS duration_minutes,
   ARRAY_SIZE(v:observations)       AS observation_count,
-  ARRAY_SIZE(v:conditions)         AS condition_count
+  ARRAY_SIZE(v:conditions)         AS condition_count,
+  v:billing.payer::string          AS payer,
+  v:billing.total_charge::number(12,2) AS total_charge,
+  v:billing.paid_amount::number(12,2)  AS paid_amount,
+  v:billing.claim_status::string   AS claim_status
 FROM &{sf_database}.&{sf_schema_raw}.encounters_json;
 
 CREATE OR REPLACE VIEW v_observations_flat AS

@@ -36,7 +36,7 @@ tables:
   - name: patients
     target: PATIENTS_CSV
     hwm_column: patient_id
-    batch_size: 100
+    batch_size: 5000
     mask:
       ssn: ssn
       phone: phone

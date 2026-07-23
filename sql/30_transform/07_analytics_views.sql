@@ -49,3 +49,38 @@ SELECT d.year, d.month, d.month_name,
 FROM fact_encounter f
 JOIN dim_date d ON d.date_key = f.date_key
 GROUP BY d.year, d.month, d.month_name;
+
+-- ---------- Financial / revenue-cycle views ----------
+
+-- Q6: revenue by payer — charged vs collected, and the collection rate.
+CREATE OR REPLACE VIEW vw_revenue_by_payer AS
+SELECT pay.payer_name,
+       COUNT(*)                 AS encounters,
+       SUM(f.total_charge)      AS total_charged,
+       SUM(f.paid_amount)       AS total_collected,
+       ROUND(SUM(f.paid_amount) / NULLIF(SUM(f.total_charge), 0) * 100, 1) AS collection_rate_pct
+FROM fact_encounter f
+JOIN dim_payer pay ON pay.payer_sk = f.payer_sk
+GROUP BY pay.payer_name;
+
+-- Q7: revenue by region (financial rollup through the snowflaked location dim).
+CREATE OR REPLACE VIEW vw_revenue_by_region AS
+SELECT l.region,
+       COUNT(*)                 AS encounters,
+       SUM(f.total_charge)      AS total_charged,
+       SUM(f.paid_amount)       AS total_collected,
+       ROUND(SUM(f.paid_amount) / NULLIF(SUM(f.total_charge), 0) * 100, 1) AS collection_rate_pct
+FROM fact_encounter f
+JOIN dim_facility fa ON fa.facility_sk = f.facility_sk
+JOIN dim_location l  ON l.location_sk  = fa.location_sk
+GROUP BY l.region;
+
+-- Q8: claim-status exposure — outstanding (pending) and written-off (denied) revenue.
+CREATE OR REPLACE VIEW vw_claim_status_exposure AS
+SELECT f.claim_status,
+       COUNT(*)            AS claims,
+       SUM(f.total_charge) AS charged,
+       SUM(f.paid_amount)  AS collected,
+       SUM(f.total_charge - f.paid_amount) AS unrecovered
+FROM fact_encounter f
+GROUP BY f.claim_status;

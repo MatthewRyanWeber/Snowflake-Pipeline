@@ -41,6 +41,13 @@ CREATE TABLE IF NOT EXISTS dim_provider (
   CONSTRAINT uq_provider UNIQUE (provider_name)
 );
 
+-- Financial dimension: the payer (insurer) responsible for the encounter's charge.
+CREATE TABLE IF NOT EXISTS dim_payer (
+  payer_sk   NUMBER IDENTITY PRIMARY KEY,
+  payer_name STRING,
+  CONSTRAINT uq_payer UNIQUE (payer_name)
+);
+
 -- SCD Type 2 patient dimension: history preserved via valid_from/valid_to/is_current.
 CREATE TABLE IF NOT EXISTS dim_patient (
   patient_sk  NUMBER IDENTITY PRIMARY KEY,

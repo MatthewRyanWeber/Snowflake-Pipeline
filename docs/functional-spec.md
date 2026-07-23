@@ -2,16 +2,18 @@
 
 ## Purpose
 
-A governance-aware analytics pipeline that turns raw healthcare records (patients +
-encounters) into a queryable star schema for BI, using fully synthetic data with production-
-grade masking and RBAC.
+A governance-aware **financial and operational analytics** pipeline that turns raw account
+and encounter records into a queryable star schema — with a revenue-cycle fact (charges,
+payments, payer mix, claim status) — for BI, using fully synthetic data with production-grade
+masking and RBAC.
 
 ## Scope
 
 - **In:** ingestion of two source shapes (relational + semi-structured), masking of PII on
-  load, transformation into a dimensional model, incremental refresh, and analytics access.
-- **Out:** real PHI, patient-facing UI, clinical decision-making. Data is synthetic (Synthea-
-  shaped); a web interface is explicitly out of scope (standalone/CLI only).
+  load, transformation into a dimensional model with financial measures, incremental refresh,
+  and analytics access.
+- **Out:** real records, end-user UI. Data is fully synthetic; a web interface is explicitly
+  out of scope (standalone/CLI only).
 
 ## Sources
 
@@ -29,6 +31,8 @@ grade masking and RBAC.
 4. What are the most common **observations** and their average values? (semi-structured
    flatten)
 5. How does encounter volume trend over **time**? (date dimension)
+6. **Revenue by payer**: charged vs collected, and the collection rate. (financial)
+7. **Revenue by region** and outstanding/denied **claim exposure**. (financial + risk)
 
 ## Data governance requirements
 

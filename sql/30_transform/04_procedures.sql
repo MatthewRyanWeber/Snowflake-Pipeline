@@ -35,9 +35,11 @@ BEGIN
          WHERE encounter_id IN (SELECT encounter_id FROM _enc_keys)) s
     ON t.encounter_id = s.encounter_id
   WHEN NOT MATCHED THEN INSERT (encounter_id, patient_id, started_at, stopped_at, encounter_class,
-    provider_name, facility_id, facility_name, city, state, duration_minutes, observation_count, condition_count)
+    provider_name, facility_id, facility_name, city, state, duration_minutes, observation_count, condition_count,
+    payer, total_charge, paid_amount, claim_status)
     VALUES (s.encounter_id, s.patient_id, s.started_at, s.stopped_at, s.encounter_class,
-    s.provider_name, s.facility_id, s.facility_name, s.city, s.state, s.duration_minutes, s.observation_count, s.condition_count);
+    s.provider_name, s.facility_id, s.facility_name, s.city, s.state, s.duration_minutes, s.observation_count, s.condition_count,
+    s.payer, s.total_charge, s.paid_amount, s.claim_status);
 
   INSERT INTO &{sf_database}.&{sf_schema_staging}.observations
     SELECT * FROM &{sf_database}.&{sf_schema_staging}.v_observations_flat
@@ -87,6 +89,11 @@ BEGIN
   ) s ON t.provider_name = s.provider_name
   WHEN NOT MATCHED THEN INSERT (provider_name) VALUES (s.provider_name);
 
+  MERGE INTO &{sf_database}.&{sf_schema_marts}.dim_payer t USING (
+    SELECT DISTINCT payer FROM &{sf_database}.&{sf_schema_staging}.encounters WHERE payer IS NOT NULL
+  ) s ON t.payer_name = s.payer
+  WHEN NOT MATCHED THEN INSERT (payer_name) VALUES (s.payer);
+
   -- SCD2 patient: expire changed current versions, then insert new versions.
   UPDATE &{sf_database}.&{sf_schema_marts}.dim_patient d
   SET valid_to = CURRENT_TIMESTAMP(), is_current = FALSE
@@ -111,18 +118,22 @@ BEGIN
   MERGE INTO &{sf_database}.&{sf_schema_marts}.fact_encounter t USING (
     SELECT e.encounter_id,
       TO_NUMBER(TO_CHAR(e.started_at::date,'YYYYMMDD')) date_key,
-      p.patient_sk, pr.provider_sk, f.facility_sk,
-      e.encounter_class, e.duration_minutes, e.observation_count, e.condition_count
+      p.patient_sk, pr.provider_sk, f.facility_sk, pay.payer_sk,
+      e.encounter_class, e.claim_status, e.duration_minutes,
+      e.observation_count, e.condition_count, e.total_charge, e.paid_amount
     FROM &{sf_database}.&{sf_schema_staging}.encounters e
     LEFT JOIN &{sf_database}.&{sf_schema_marts}.dim_patient p
       ON p.patient_id = e.patient_id AND e.started_at >= p.valid_from
      AND (e.started_at < p.valid_to OR p.valid_to IS NULL)
     LEFT JOIN &{sf_database}.&{sf_schema_marts}.dim_provider pr ON pr.provider_name = e.provider_name
     LEFT JOIN &{sf_database}.&{sf_schema_marts}.dim_facility  f ON f.facility_id    = e.facility_id
+    LEFT JOIN &{sf_database}.&{sf_schema_marts}.dim_payer     pay ON pay.payer_name = e.payer
   ) s ON t.encounter_id = s.encounter_id
   WHEN NOT MATCHED THEN INSERT
-    (encounter_id, date_key, patient_sk, provider_sk, facility_sk, encounter_class, duration_minutes, observation_count, condition_count)
-    VALUES (s.encounter_id, s.date_key, s.patient_sk, s.provider_sk, s.facility_sk, s.encounter_class, s.duration_minutes, s.observation_count, s.condition_count);
+    (encounter_id, date_key, patient_sk, provider_sk, facility_sk, payer_sk, encounter_class, claim_status,
+     duration_minutes, observation_count, condition_count, total_charge, paid_amount)
+    VALUES (s.encounter_id, s.date_key, s.patient_sk, s.provider_sk, s.facility_sk, s.payer_sk, s.encounter_class, s.claim_status,
+     s.duration_minutes, s.observation_count, s.condition_count, s.total_charge, s.paid_amount);
 
   RETURN 'sp_build_marts: marts refreshed';
 END;

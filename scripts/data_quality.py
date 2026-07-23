@@ -27,6 +27,8 @@ CHECKS = {
     "dim_patient one current":    f"SELECT COUNT(*) FROM (SELECT patient_id FROM {DB}.MARTS.DIM_PATIENT WHERE is_current GROUP BY patient_id HAVING COUNT(*) > 1)",
     "dim_facility -> location FK": f"SELECT COUNT(*) FROM {DB}.MARTS.DIM_FACILITY f LEFT JOIN {DB}.MARTS.DIM_LOCATION l ON l.location_sk=f.location_sk WHERE l.location_sk IS NULL",
     "dim_location region set":    f"SELECT COUNT(*) FROM {DB}.MARTS.DIM_LOCATION WHERE region IS NULL",
+    "fact.payer_sk FK valid":     f"SELECT COUNT(*) FROM {DB}.MARTS.FACT_ENCOUNTER f LEFT JOIN {DB}.MARTS.DIM_PAYER d ON d.payer_sk=f.payer_sk WHERE f.payer_sk IS NOT NULL AND d.payer_sk IS NULL",
+    "fact.paid <= charged":       f"SELECT COUNT(*) FROM {DB}.MARTS.FACT_ENCOUNTER WHERE paid_amount > total_charge",
     "RAW.ssn masked":             f"SELECT COUNT(*) FROM {DB}.RAW.PATIENTS_CSV WHERE ssn IS NOT NULL AND ssn NOT LIKE 'XXX-XX-%'",
     "RAW.phone masked":           f"SELECT COUNT(*) FROM {DB}.RAW.PATIENTS_CSV WHERE phone IS NOT NULL AND phone NOT LIKE '(XXX) XXX-%'",
 }

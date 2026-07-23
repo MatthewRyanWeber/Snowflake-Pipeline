@@ -11,10 +11,14 @@ CREATE TABLE IF NOT EXISTS fact_encounter (
   patient_sk        NUMBER REFERENCES dim_patient(patient_sk),
   provider_sk       NUMBER REFERENCES dim_provider(provider_sk),
   facility_sk       NUMBER REFERENCES dim_facility(facility_sk),
+  payer_sk          NUMBER REFERENCES dim_payer(payer_sk),
   encounter_class   STRING,
+  claim_status      STRING,
   -- measures
   duration_minutes  NUMBER,
   observation_count NUMBER,
   condition_count   NUMBER,
+  total_charge      NUMBER(12,2),   -- financial: billed amount
+  paid_amount       NUMBER(12,2),   -- financial: reimbursed amount
   _built_at         TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );

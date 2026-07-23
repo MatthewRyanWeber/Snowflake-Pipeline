@@ -33,8 +33,14 @@ and kept current by **Streams + a Task DAG**. `DIM_PATIENT` is **SCD Type 2**.
 | `DIM_DATE` | `date_key` (YYYYMMDD) | conformed calendar, generated 2023–2026 |
 | `DIM_PATIENT` | `patient_sk` (identity) | **SCD2**: `valid_from`/`valid_to`/`is_current` |
 | `DIM_PROVIDER` | `provider_sk` | conformed |
+| `DIM_PAYER` | `payer_sk` | **financial**: insurer responsible for the charge |
 | `DIM_FACILITY` | `facility_sk` | → `DIM_LOCATION` (snowflake) |
 | `DIM_LOCATION` | `location_sk` | `city, state, region` |
+
+`FACT_ENCOUNTER` carries **revenue-cycle measures** — `total_charge`, `paid_amount`,
+`claim_status` — alongside the operational measures (`duration_minutes`, `observation_count`).
+Revenue views (`vw_revenue_by_payer`, `vw_revenue_by_region`, `vw_claim_status_exposure`)
+serve charged-vs-collected and collection-rate analytics.
 
 ## SCD Type 2 (patient)
 

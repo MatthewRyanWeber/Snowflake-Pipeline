@@ -50,6 +50,15 @@ CONDITIONS = [
     ("38341003", "Hypertension"), ("44054006", "Diabetes"), ("195967001", "Asthma"),
     ("40055000", "Chronic sinusitis"), ("162864005", "Obesity"), (None, None),
 ]
+# --- Financial / revenue-cycle catalog ---
+# (payer, coverage_rate) — share of the charge the payer reimburses.
+PAYERS = [
+    ("Medicare", 0.80), ("Medicaid", 0.72), ("BlueCross", 0.85),
+    ("Aetna", 0.83), ("UnitedHealth", 0.82), ("SelfPay", 0.35),
+]
+CLASS_BASE_CHARGE = {"ambulatory": 350, "emergency": 1800, "inpatient": 6200,
+                     "wellness": 180, "urgentcare": 420}
+CLAIM_STATUSES = ["paid", "pending", "denied"]
 
 
 def _rand_date(rng: random.Random, start: date, end: date) -> date:
@@ -99,16 +108,30 @@ def generate(num_patients: int, enc_min: int, enc_max: int, seed: int):
                 })
             cond_code, cond_desc = rng.choice(CONDITIONS)
             conditions = [] if cond_code is None else [{"code": cond_code, "description": cond_desc}]
+
+            enc_class = rng.choice(ENCOUNTER_CLASSES)
+            payer_name, coverage = rng.choice(PAYERS)
+            total_charge = round(CLASS_BASE_CHARGE[enc_class] * rng.uniform(0.7, 1.6), 2)
+            claim_status = rng.choices(CLAIM_STATUSES, weights=[80, 15, 5])[0]
+            if claim_status == "denied":
+                paid_amount = 0.0
+            elif claim_status == "pending":
+                paid_amount = round(total_charge * coverage * 0.5, 2)
+            else:
+                paid_amount = round(total_charge * coverage, 2)
+
             encounters.append({
                 "encounter_id": f"ENC-{rng.randint(10**9, 10**10 - 1)}",
                 "patient_id": pid,
                 "start": start.isoformat(),
                 "stop": stop.isoformat(),
-                "encounter_class": rng.choice(ENCOUNTER_CLASSES),
+                "encounter_class": enc_class,
                 "provider": {"name": rng.choice(PROVIDERS),
                              "facility_id": facility["facility_id"],
                              "facility_name": facility["name"],
                              "city": facility["city"], "state": facility["state"]},
+                "billing": {"payer": payer_name, "total_charge": total_charge,
+                            "paid_amount": paid_amount, "claim_status": claim_status},
                 "observations": observations,
                 "conditions": conditions,
             })

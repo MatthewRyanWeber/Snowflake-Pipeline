@@ -1,15 +1,16 @@
 # Snowflake Pipeline
 
-A governance-aware, portfolio-grade **Snowflake analytics pipeline** for synthetic
-healthcare data. It ingests two sources into a raw layer, transforms them via
-Snowflake-native Streams + Tasks into a star schema, and exposes them for BI.
+A governance-aware, portfolio-grade **Snowflake analytics pipeline** for **financial and
+operational analytics**. It ingests two sources into a raw layer, transforms them via
+Snowflake-native Streams + Tasks into a star schema with a **revenue-cycle fact** (charges,
+payments, payer mix, claim status), and exposes it for BI.
 
-**Standalone / CLI only — no web interface.** Everything runs from SnowSQL scripts and
-Python command-line jobs; orchestration is Snowflake-native (Snowpipe → Streams → Tasks),
-with GitHub Actions for deploy + validation.
+**Standalone / CLI only — no web interface.** Everything runs from Python command-line
+modules; orchestration is Snowflake-native (Snowpipe → Streams → Tasks), with GitHub Actions
+for deploy + validation.
 
-> Data is fully synthetic (Synthea). No real PHI. Masking and governance controls are built
-> and demonstrated as if it were real.
+> Data is fully synthetic — no real records. PII masking and governance controls are built
+> and demonstrated as if it were production data.
 
 ## Architecture
 
@@ -23,10 +24,10 @@ with GitHub Actions for deploy + validation.
                                           STAGING.*  (cleansed, typed)
                                                    │  Tasks (scheduled DAG)
                                                    ▼
-                                          MARTS.*  (star schema: facts + dims,
-                                                    one snowflaked dimension)
+                                          MARTS.*  (star schema: revenue fact + dims,
+                                                    incl. payer + one snowflaked dimension)
                                                    ▼
-                                          BI / analytics views
+                                          Revenue / BI analytics views
 ```
 
 ## Layout
@@ -95,15 +96,15 @@ optimization · performance case study — all under [`docs/`](docs/).
 
 ## Conventions
 
-- No secrets in code or git history — env vars / SnowSQL config only.
+- No secrets in code or git history — connection config lives outside the repo.
 - Every SQL deploy script is idempotent and re-runnable.
 - Destructive Python jobs support `--dry-run`.
-- All ingested PII/PHI is masked on load.
+- All ingested PII is masked on load.
 
 ## Environment
 
-Development targets **WSL2 / Linux** shells; Windows-side steps (S3/SQS setup, SnowSQL config
-location) are called out explicitly where they apply.
+Cross-platform: the deploy tool and loaders run via the Snowflake Python connector on Windows
+or Linux. Windows-side steps (S3/SQS setup) are called out where they apply.
 
 ## License
 

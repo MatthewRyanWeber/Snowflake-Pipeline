@@ -12,7 +12,8 @@ FROM v_patients_dedup;
 
 INSERT OVERWRITE INTO encounters
 SELECT encounter_id, patient_id, started_at, stopped_at, encounter_class, provider_name,
-       facility_id, facility_name, city, state, duration_minutes, observation_count, condition_count
+       facility_id, facility_name, city, state, duration_minutes, observation_count, condition_count,
+       payer, total_charge, paid_amount, claim_status
 FROM v_encounters_flat;
 
 INSERT OVERWRITE INTO observations
