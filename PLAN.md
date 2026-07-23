@@ -1,12 +1,12 @@
-# Snowflake Pipeline — Build Plan for Claude Code
+# Snowflake Pipeline — Build Plan
 
 **Purpose:** A portfolio-grade, governance-aware Snowflake analytics pipeline whose
 features map 1:1 onto the *Sr Snowflake Data Engineer* JD (NYC). Built so you can demo a
 real, running solution and speak to every bullet in an interview.
 
-**How to use this doc:** Drop it into the repo root (e.g. `PLAN.md`) and hand phases to
-Claude Code one at a time. Each phase has a goal, tasks, deliverables, and acceptance
-criteria. Don't run them all at once — build → verify → commit per phase.
+**How to use this doc:** it lives in the repo root. Take one phase at a time. Each phase has a
+goal, tasks, deliverables, and acceptance criteria. Don't run them all at once — build →
+verify → commit per phase.
 
 ---
 

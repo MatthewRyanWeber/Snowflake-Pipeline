@@ -1,4 +1,4 @@
-# Secrets & credentials — never commit (see CLAUDE.md)
+# Secrets & credentials — never commit (see CONVENTIONS.md)
 .env
 .env.*
 *.pem

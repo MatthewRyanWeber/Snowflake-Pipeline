@@ -34,8 +34,8 @@ for deploy + validation.
 
 | Path | Purpose |
 |---|---|
-| `PLAN.md` | Phased build plan — hand Claude Code one phase at a time. |
-| `CLAUDE.md` | Working conventions for this repo. |
+| `PLAN.md` | Phased build plan — build one phase at a time. |
+| `CONVENTIONS.md` | Working conventions for this repo. |
 | `sql/00_setup/` | Idempotent SnowSQL: role, warehouse, database, schemas. |
 | `sql/10_ingest/` | Stages, file formats, RAW tables, Snowpipe. |
 | `sql/30_transform/` | Streams, Tasks DAG, STAGING → MARTS star schema. |

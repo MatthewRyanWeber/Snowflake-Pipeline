@@ -1,6 +1,6 @@
-# CLAUDE.md — Snowflake Pipeline Project
+# Conventions — Snowflake Pipeline Project
 
-Working conventions for Claude Code on this repo. Read `PLAN.md` for the phased build plan.
+Working conventions for this repo. Read `PLAN.md` for the phased build plan.
 
 ## Build discipline
 - Work **one phase at a time** (see `PLAN.md`). Build → verify against the phase's
@@ -34,5 +34,5 @@ Working conventions for Claude Code on this repo. Read `PLAN.md` for the phased 
   — code, comments, templates, docs, or commit messages.
 
 ## Environment
-- Development runs under **WSL2** with Claude Code. Assume a Linux shell for scripts; note any
-  Windows-side steps explicitly (e.g. S3/SQS setup, SnowSQL config location).
+- Cross-platform: the deploy tool and loaders run via the Snowflake Python connector on
+  Windows or Linux. Note any Windows-side steps explicitly (e.g. S3/SQS setup).

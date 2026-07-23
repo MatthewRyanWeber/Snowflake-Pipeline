@@ -1,7 +1,7 @@
 # PROGRESS — Snowflake Pipeline
 
 Durable, git-tracked build status. The source of truth for resuming across sessions.
-Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.md).
+Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CONVENTIONS.md`](CONVENTIONS.md).
 
 **To resume:** open this file, find the first unchecked box, say "continue with Phase N."
 
