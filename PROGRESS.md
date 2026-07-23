@@ -13,7 +13,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 |---|---|---|
 | 0 | Foundation | 🟡 Scripts written + dry-run verified; live deploy pending trial account |
 | 1 | Snowpipe ingestion (files → RAW) | 🟡 Pre-built offline; live deploy + AWS S3/SQS pending |
-| 2 | Relational source loader (Python) | ⬜ Not started |
+| 2 | Relational source loader (Python) | 🟡 Built + 15 tests green + offline dry-run works; live SQL Server pending |
 | 3 | Streams + Tasks → star schema | ⬜ Not started |
 | 4 | Snowpark transformation | ⬜ Not started |
 | 5 | Performance tuning case study | ⬜ Not started |
@@ -50,12 +50,13 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 
 ## Phase 2 — Relational source loader (Python)
 
-- [ ] Python job: extract from SQL Server (or Postgres) → RAW via Snowflake connector / Snowpark write
-- [ ] Governance ported: versioning, structured logging, `--dry-run`, PII masking on load, `argparse` CLI, file locking
-- [ ] Incremental/idempotent load via high-water-mark column
-- [ ] Config-driven (table list, mappings); no secrets in code
-- [ ] Deliverables: `loader/` package, `config/loader.yaml`, unit tests, `docs/loader.md`
-- [ ] **Acceptance:** `python -m loader --dry-run` reports intended changes; real run incremental + re-runnable, no dupes; masked columns land masked
+- [x] Python job: extract from SQL Server → RAW *(`loader/`, pyodbc source + Snowflake sink, lazy-imported)*
+- [x] Governance ported: versioning, structured logging, `--dry-run`, PII masking on load, `argparse` CLI, file locking *(all in `loader/`)*
+- [x] Incremental/idempotent load via high-water-mark column *(`loader/watermark.py`, checkpoint-after-commit)*
+- [x] Config-driven (table list, mappings); no secrets in code *(`config/loader.yaml` + offline `loader.sample.yaml`)*
+- [x] Deliverables: `loader/` package, `config/loader.yaml`, unit tests, `docs/loader.md`
+- [x] **Acceptance (offline):** `python -m loader --dry-run --config config/loader.sample.yaml` reports intended changes + masked sample, writes nothing — **verified**
+- [ ] **Acceptance (live):** real SQL Server run incremental + re-runnable, no dupes; masked columns land masked *(pending live DB + account)*
 
 ## Phase 3 — Streams + Tasks → star schema (centerpiece)
 

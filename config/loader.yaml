@@ -1,0 +1,29 @@
+# Loader config — NON-SECRET (safe to commit). No passwords here.
+# Snowflake auth: named connection in ~/.snowsql/config. SQL Server auth: ODBC DSN or
+# trusted/Windows auth, or an env-referenced connection string — never inline a password.
+
+source:
+  type: sqlserver
+  # Provide ONE of dsn or conn_str.
+  dsn: HEALTH_SQLSERVER
+  # conn_str: "DRIVER={ODBC Driver 18 for SQL Server};SERVER=host;DATABASE=health;Trusted_Connection=yes"
+
+snowflake:
+  connection: snowflake_pipeline      # [connections.snowflake_pipeline] in ~/.snowsql/config
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  # ASSUMPTION: dev salt. In production, source this from a secret store, don't commit it.
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients                    # source table
+    target: PATIENTS_CSV              # RAW target table
+    # For real incremental loads prefer a monotonic updated_at / LoadDate column here;
+    # patient_id works for the synthetic set because IDs increase.
+    hwm_column: patient_id
+    batch_size: 5000
+    mask:
+      ssn: ssn                        # 123-45-6789 -> XXX-XX-6789
+      phone: phone                    # keep last 4

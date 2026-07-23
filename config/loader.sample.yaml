@@ -1,0 +1,23 @@
+# Offline demo config — runs the loader against the committed synthetic sample with NO
+# database. Use for `python -m loader --dry-run --config config/loader.sample.yaml`.
+
+source:
+  type: file
+  path: sql/10_ingest/samples/patients.csv
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients
+    target: PATIENTS_CSV
+    hwm_column: patient_id
+    batch_size: 2                     # small, to show multiple batches on the 5-row sample
+    mask:
+      ssn: ssn
+      phone: phone

@@ -49,3 +49,6 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Loader runtime state (watermarks, lock files) — regenerated per run
+state/

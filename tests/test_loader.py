@@ -1,0 +1,141 @@
+"""Loader unit tests — masking, watermark checkpointing, incremental pipeline, file source.
+Run: python -m pytest tests/ -q"""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from loader import masking  # noqa: E402
+from loader.pipeline import run  # noqa: E402
+from loader.source_file import FileSource  # noqa: E402
+from loader.watermark import WatermarkStore  # noqa: E402
+
+
+# --- masking ---
+
+def test_mask_ssn_keeps_last4():
+    assert masking.mask_ssn("123-45-6789") == "XXX-XX-6789"
+    assert masking.mask_ssn("") == ""
+    assert masking.mask_ssn(None) is None
+
+
+def test_mask_phone_keeps_last4():
+    assert masking.mask_phone("(212) 555-1234") == "(XXX) XXX-1234"
+
+
+def test_hash_is_deterministic_and_nonreversible():
+    a = masking.hash_sha256("PAT-1", salt="s")
+    b = masking.hash_sha256("PAT-1", salt="s")
+    assert a == b and a != "PAT-1" and len(a) == 64
+
+
+def test_unknown_policy_raises():
+    try:
+        masking.apply_policy("x", "nope")
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_mask_row_only_touches_configured_columns():
+    row = {"patient_id": "PAT-1", "ssn": "123-45-6789", "city": "NYC"}
+    out = masking.mask_row(row, {"ssn": "ssn"}, salt="s")
+    assert out["ssn"] == "XXX-XX-6789"
+    assert out["city"] == "NYC" and out["patient_id"] == "PAT-1"
+
+
+# --- watermark ---
+
+def test_watermark_persists_and_reloads(tmp_path):
+    p = tmp_path / "wm.json"
+    wm = WatermarkStore(p)
+    assert wm.get("patients") is None
+    wm.set("patients", "PAT-000010")
+    assert WatermarkStore(p).get("patients") == "PAT-000010"
+
+
+def test_corrupt_watermark_fails_loud(tmp_path):
+    p = tmp_path / "wm.json"
+    p.write_text("{not json", encoding="utf-8")
+    try:
+        WatermarkStore(p)
+        assert False, "expected RuntimeError on corrupt state"
+    except RuntimeError:
+        pass
+
+
+# --- pipeline (with fakes) ---
+
+class FakeSource:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def fetch_batches(self, table, hwm_column, since, batch_size):
+        rows = sorted(self._rows, key=lambda r: r[hwm_column])
+        if since is not None:
+            rows = [r for r in rows if str(r[hwm_column]) > str(since)]
+        for i in range(0, len(rows), batch_size):
+            yield rows[i:i + batch_size]
+
+
+class FakeSink:
+    def __init__(self):
+        self.written = []
+
+    def write(self, table, rows):
+        self.written.extend(rows)
+        return len(rows)
+
+    def close(self):
+        pass
+
+
+def _rows(n):
+    return [{"patient_id": f"PAT-{i:06d}", "ssn": "123-45-6789", "city": "NYC"} for i in range(1, n + 1)]
+
+
+def test_pipeline_masks_and_writes():
+    src, sink = FakeSource(_rows(5)), FakeSink()
+    wm = WatermarkStore(Path("state/_test_wm1.json"))
+    wm._data = {}
+    cfg = [{"name": "patients", "target": "PATIENTS_CSV", "hwm_column": "patient_id",
+            "batch_size": 2, "mask": {"ssn": "ssn"}}]
+    res = run(src, sink, wm, cfg, salt="s")[0]
+    assert res.rows_read == 5 and res.rows_written == 5
+    assert all(r["ssn"] == "XXX-XX-6789" for r in sink.written)
+    Path("state/_test_wm1.json").unlink(missing_ok=True)
+
+
+def test_dry_run_writes_nothing_and_leaves_watermark(tmp_path):
+    src, sink = FakeSource(_rows(3)), FakeSink()
+    wm = WatermarkStore(tmp_path / "wm.json")
+    cfg = [{"name": "patients", "hwm_column": "patient_id", "batch_size": 10}]
+    res = run(src, sink, wm, cfg, salt="s", dry_run=True)[0]
+    assert res.rows_read == 3 and res.rows_written == 0
+    assert sink.written == []
+    assert wm.get("patients") is None  # dry-run must not advance the checkpoint
+
+
+def test_incremental_resumes_from_watermark(tmp_path):
+    wm = WatermarkStore(tmp_path / "wm.json")
+    sink = FakeSink()
+    cfg = [{"name": "patients", "hwm_column": "patient_id", "batch_size": 10}]
+    run(FakeSource(_rows(3)), sink, wm, cfg, salt="s")            # loads PAT-000001..3
+    first = len(sink.written)
+    run(FakeSource(_rows(5)), sink, wm, cfg, salt="s")            # only PAT-000004..5 are new
+    assert len(sink.written) - first == 2
+
+
+# --- file source (offline end-to-end) ---
+
+def test_file_source_reads_sample_csv():
+    sample = Path(__file__).resolve().parents[1] / "sql/10_ingest/samples/patients.csv"
+    if not sample.exists():
+        return  # sample optional
+    src = FileSource(sample).connect()
+    batches = list(src.fetch_batches("patients", "patient_id", None, 2))
+    rows = [r for b in batches for r in b]
+    assert rows and "ssn" in rows[0]
+    ids = [r["patient_id"] for r in rows]
+    assert ids == sorted(ids)  # ordered by hwm

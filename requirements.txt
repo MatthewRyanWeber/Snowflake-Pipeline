@@ -1,0 +1,9 @@
+# Live-run dependencies for the Python loader (Phase 2) and Snowpark (Phase 4).
+# Pure logic + offline dry-run/tests need only pyyaml (+ pytest for tests).
+pyyaml>=6.0
+snowflake-connector-python>=3.7
+snowflake-snowpark-python>=1.11
+pyodbc>=5.1
+
+# Dev / test
+pytest>=8.0
