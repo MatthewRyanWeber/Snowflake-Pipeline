@@ -12,6 +12,12 @@ for deploy + validation.
 > Data is fully synthetic — no real records. PII masking and governance controls are built
 > and demonstrated as if it were production data.
 
+## Demo
+
+[![15-second demo](docs/images/sizzle.gif)](docs/videos/snowflake-pipeline-sizzle.mp4)
+
+*15-second sizzle — click for the full 1080p video ([`docs/videos/`](docs/videos/snowflake-pipeline-sizzle.mp4)).*
+
 ## CLI in action
 
 Bulk load (SQL Server → Snowflake) with live progress + ETA:
