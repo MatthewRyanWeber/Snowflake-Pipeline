@@ -21,6 +21,28 @@ reporting are left to the BI/query layer on top of the model.
 > Data is fully synthetic — no real records. Masking and governance controls are enforced by
 > Snowflake as if it were production data.
 
+## Verified live
+
+Every layer below was **run against real infrastructure**, not just unit-tested:
+
+- **End-to-end on a real Snowflake account** — the full native stack (setup → ingest → transform
+  → governance) deploys and runs; the star schema builds from loaded data.
+- **Real source database** — data extracted from a **local SQL Server** through the connector
+  into `RAW`, incrementally (high-water-mark, safe to re-run without duplicates).
+- **Native data masking** — the same SSN returns `XXX-XX-2073` to `PIPELINE_ROLE` and
+  `718-70-2073` to `PII_READER`, enforced by a Snowflake masking policy at query time.
+- **Transfer audit** — every load is written to `GOV.LOAD_LOG` (source, target, rows, user, time).
+- **Data quality** — 16/16 referential-integrity + masking checks pass on the loaded model.
+- **Scale features** — parallel table loads (2 at once), metadata-driven ingestion (an `INSERT`
+  into `GOV.SOURCES` made the next run pick up a second table), and tag-based masking on
+  `address`, all exercised live.
+- **Managed service** — the CI/CD workflow (`deploy.yml`) provisions a fresh
+  `HEALTH_ANALYTICS_DEV` database from GitHub Actions (green run), and the loader runs from a
+  built Docker image.
+
+Only S3 Snowpipe *auto-ingest* is unverified (needs an AWS bucket + IAM); its COPY/VARIANT half
+is verified via an internal stage.
+
 ## Demo
 
 [![15-second demo](docs/images/sizzle.gif)](docs/videos/snowflake-pipeline-sizzle.mp4)
