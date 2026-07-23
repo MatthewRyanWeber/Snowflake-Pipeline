@@ -16,7 +16,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 | 2 | Relational source loader (Python) | ✅ **Verified LIVE**: 300 rows loaded, masked, incremental re-run = 0 dupes |
 | 3 | Streams + Tasks → star schema | ✅ **Built + verified LIVE** (star+snowflake, SCD2, 10-task DAG propagates in 18s) |
 | 4 | Snowpark transformation | ✅ **Verified LIVE**: naive vs optimized, identical results, 206× less client data movement |
-| 5 | Performance tuning case study | ⬜ Not started |
+| 5 | Performance tuning case study | ✅ **Verified LIVE**: pruning 15/15 → 2/16 partitions (7.5× fewer) |
 | 6 | Docs, spec, demo | ⬜ Not started |
 
 Legend: ✅ done · 🟡 in progress · ⬜ not started
@@ -80,11 +80,11 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 
 ## Phase 5 — Performance tuning case study
 
-- [ ] Take one deliberately slow query/table; tune it (clustering key, micro-partition pruning, warehouse sizing, result caching, avoid spillage)
-- [ ] Diagnose via Query Profile + `QUERY_HISTORY` / `WAREHOUSE_LOAD_HISTORY`
-- [ ] Write-up: symptom → diagnosis → fix → measured result
-- [ ] Deliverables: `docs/performance-case-study.md` (profiles + before/after timings + credit usage)
-- [ ] **Acceptance:** documented, reproducible tuning win walkable in 3–4 min
+- [x] Deliberately unclustered 2.05M-row fact; tuned via ordering on the filter column *(`scripts/perf_case_study.py`)*
+- [x] Diagnosed via `GET_QUERY_OPERATOR_STATS` (partitions scanned) + `SYSTEM$CLUSTERING_INFORMATION` (depth)
+- [x] Write-up: symptom → diagnosis → fix → measured result *(`docs/performance-case-study.md`)*
+- [x] Deliverables: `docs/performance-case-study.md` with live before/after
+- [x] **Acceptance (LIVE):** reproducible win — 15/15 → 2/16 partitions scanned (7.5×), depth 15.0 → 1.5
 
 ## Phase 6 — Docs, spec, demo
 
