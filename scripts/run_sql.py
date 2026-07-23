@@ -106,6 +106,18 @@ def split_statements(sql: str) -> list:
     return stmts
 
 
+def _is_noop(stmt: str) -> bool:
+    """True if a chunk is only line comments / whitespace (nothing to execute).
+
+    A trailing '-- comment' after the final ';' splits into its own chunk; Snowflake
+    rejects an all-comment statement with 'Empty SQL statement' (42601).
+    """
+    for line in stmt.splitlines():
+        if line.strip() and not line.strip().startswith("--"):
+            return False
+    return True
+
+
 def run_file(con, path: Path, variables: dict, dry_run: bool) -> None:
     sql = substitute(path.read_text(encoding="utf-8"), variables)
     statements = split_statements(sql)
@@ -116,6 +128,10 @@ def run_file(con, path: Path, variables: dict, dry_run: bool) -> None:
     cur = con.cursor()
     try:
         for stmt in statements:
+            # Skip comment-only / blank chunks (e.g. a trailing comment after the last ';');
+            # Snowflake rejects those as "Empty SQL statement".
+            if _is_noop(stmt):
+                continue
             cur.execute(stmt)
             if cur.description:  # a result-producing statement (SELECT/SHOW/DESC/CALL)
                 rows = cur.fetchall()
