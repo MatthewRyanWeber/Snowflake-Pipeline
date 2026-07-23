@@ -46,20 +46,82 @@ def substitute(sql: str, variables: dict) -> str:
     return VAR_RE.sub(repl, sql)
 
 
+def split_statements(sql: str) -> list:
+    """Split a script into statements on top-level ';', ignoring semicolons inside
+    single-quoted strings and $$...$$ dollar-quoted blocks (stored-procedure bodies).
+
+    The connector's execute_string splits naively and breaks on procedure bodies; this
+    is the robust replacement so CREATE PROCEDURE ... $$ ... ; ... $$ stays one statement.
+    """
+    stmts, buf = [], []
+    i, n = 0, len(sql)
+    in_squote = in_dollar = False
+    while i < n:
+        ch = sql[i]
+        pair = sql[i:i + 2]
+        if in_dollar:
+            buf.append(ch)
+            if pair == "$$":
+                buf.append("$")
+                i += 2
+                in_dollar = False
+                continue
+            i += 1
+        elif in_squote:
+            buf.append(ch)
+            if ch == "'":
+                if sql[i + 1:i + 2] == "'":       # escaped '' inside a string
+                    buf.append("'")
+                    i += 2
+                    continue
+                in_squote = False
+            i += 1
+        elif pair == "$$":
+            buf.append("$$")
+            i += 2
+            in_dollar = True
+        elif ch == "'":
+            buf.append(ch)
+            i += 1
+            in_squote = True
+        elif pair == "--":                          # line comment -> copy to EOL
+            eol = sql.find("\n", i)
+            eol = n if eol == -1 else eol
+            buf.append(sql[i:eol])
+            i = eol
+        elif ch == ";":
+            stmt = "".join(buf).strip()
+            if stmt:
+                stmts.append(stmt)
+            buf = []
+            i += 1
+        else:
+            buf.append(ch)
+            i += 1
+    tail = "".join(buf).strip()
+    if tail:
+        stmts.append(tail)
+    return stmts
+
+
 def run_file(con, path: Path, variables: dict, dry_run: bool) -> None:
     sql = substitute(path.read_text(encoding="utf-8"), variables)
-    logger.info("--- %s", path.name)
+    statements = split_statements(sql)
+    logger.info("--- %s (%d statement(s))", path.name, len(statements))
     if dry_run:
         print(sql)
         return
-    # execute_string splits and runs the multi-statement script in one session.
-    for cur in con.execute_string(sql, remove_comments=False):
-        if cur.description:  # a result-producing statement (SELECT/SHOW/DESC)
-            rows = cur.fetchall()
-            cols = [c[0] for c in cur.description]
-            logger.info("  %s -> %d row(s)", (cur.query or "").split("\n")[0][:60], len(rows))
-            for r in rows[:20]:
-                print("   ", dict(zip(cols, r)))
+    cur = con.cursor()
+    try:
+        for stmt in statements:
+            cur.execute(stmt)
+            if cur.description:  # a result-producing statement (SELECT/SHOW/DESC/CALL)
+                rows = cur.fetchall()
+                cols = [c[0] for c in cur.description]
+                for r in rows[:20]:
+                    print("   ", dict(zip(cols, r)))
+    finally:
+        cur.close()
 
 
 def main(argv=None) -> int:

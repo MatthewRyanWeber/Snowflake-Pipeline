@@ -39,3 +39,42 @@ CREATE TABLE IF NOT EXISTS observations (
   obs_value       FLOAT,
   obs_units       STRING
 );
+
+-- ---------- Canonical transform expressions (defined ONCE, here) ----------
+-- Every flatten/dedup rule lives in a view so the backfill and the incremental
+-- procedure reference the same definition. Changing a rule = editing one place.
+
+CREATE OR REPLACE VIEW v_patients_dedup AS
+SELECT patient_id, first_name, last_name, birth_date, gender, city, state,
+       ssn AS ssn_masked, phone AS phone_masked
+FROM (
+  SELECT *, ROW_NUMBER() OVER (PARTITION BY patient_id ORDER BY _load_ts DESC NULLS LAST) rn
+  FROM &{sf_database}.&{sf_schema_raw}.patients_csv
+) WHERE rn = 1;
+
+CREATE OR REPLACE VIEW v_encounters_flat AS
+SELECT
+  v:encounter_id::string           AS encounter_id,
+  v:patient_id::string             AS patient_id,
+  v:start::timestamp_ntz           AS started_at,
+  v:stop::timestamp_ntz            AS stopped_at,
+  v:encounter_class::string        AS encounter_class,
+  v:provider.name::string          AS provider_name,
+  v:provider.facility_id::string   AS facility_id,
+  v:provider.facility_name::string AS facility_name,
+  v:provider.city::string          AS city,
+  v:provider.state::string         AS state,
+  DATEDIFF('minute', v:start::timestamp_ntz, v:stop::timestamp_ntz) AS duration_minutes,
+  ARRAY_SIZE(v:observations)       AS observation_count,
+  ARRAY_SIZE(v:conditions)         AS condition_count
+FROM &{sf_database}.&{sf_schema_raw}.encounters_json;
+
+CREATE OR REPLACE VIEW v_observations_flat AS
+SELECT
+  e.v:encounter_id::string        AS encounter_id,
+  obs.value:code::string          AS obs_code,
+  obs.value:description::string   AS obs_description,
+  obs.value:value::float          AS obs_value,
+  obs.value:units::string         AS obs_units
+FROM &{sf_database}.&{sf_schema_raw}.encounters_json e,
+     LATERAL FLATTEN(input => e.v:observations) obs;
