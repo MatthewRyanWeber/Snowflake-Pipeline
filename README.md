@@ -59,6 +59,14 @@ Credentials go in `~/.snowflake/connections.toml` (connector) or `~/.snowsql/con
 ```bash
 pip install -r requirements.txt
 
+# One command — deploy + ingest + transform + validate, end to end:
+python scripts/run_pipeline.py --num-patients 300
+# Clean uninstall when done:  python scripts/teardown.py --yes
+```
+
+Or step by step:
+
+```bash
 # Deploy each phase (connector-based; no SnowSQL needed):
 python scripts/run_sql.py --dir sql/00_setup                 # role, warehouse, DB, schemas
 python scripts/run_sql.py --file sql/10_ingest/01_file_formats.sql
