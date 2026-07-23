@@ -45,14 +45,45 @@ with GitHub Actions for deploy + validation.
 | `docs/` | Functional spec, technical design, tuning case study, diagrams. |
 | `tests/` | Unit tests, runnable with a single command. |
 
+## Status
+
+Phases 0–5 **built and verified live** on a Snowflake account; Phase 6 (docs) complete. The
+only unverified piece is S3 Snowpipe *auto-ingest* (needs an AWS bucket + IAM); its COPY/
+VARIANT half is verified via an internal stage. See [`PROGRESS.md`](PROGRESS.md).
+
 ## Quick start
 
-Not yet deployable — this is the Phase 0 skeleton. See `PLAN.md`.
+Credentials go in `~/.snowflake/connections.toml` (connector) or `~/.snowsql/config`
+(SnowSQL) — **never** in the repo.
 
-1. Sign up for the Snowflake 30-day trial; note the account identifier.
-2. Install SnowSQL; configure a named connection (`~/.snowsql/config` — **never** hardcode
-   creds).
-3. `./scripts/deploy.sh` rebuilds the full role/warehouse/schema layout from scratch.
+```bash
+pip install -r requirements.txt
+
+# Deploy each phase (connector-based; no SnowSQL needed):
+python scripts/run_sql.py --dir sql/00_setup                 # role, warehouse, DB, schemas
+python scripts/run_sql.py --file sql/10_ingest/01_file_formats.sql
+python scripts/run_sql.py --file sql/10_ingest/03_raw_tables.sql
+
+# Generate data + load (masked, incremental):
+python scripts/generate_synthetic_data.py --num-patients 300 --out-dir data/synthea
+python -m loader --config config/loader.local.yaml
+python scripts/load_internal_stage.py --file data/synthea/encounters.json --table ENCOUNTERS_JSON --format json --truncate
+
+# Build the star schema + Task DAG:
+python scripts/run_sql.py --dir sql/30_transform
+
+# Senior-signal demos:
+python snowpark/cohort_aggregation.py    # naive vs optimized pushdown
+python scripts/perf_case_study.py        # micro-partition pruning
+```
+
+`scripts/deploy.sh` is the equivalent SnowSQL/WSL2 path. Full walkthrough:
+[`docs/demo-script.md`](docs/demo-script.md).
+
+## Docs
+
+Functional spec · technical design · data model · Snowpipe setup · loader · Snowpark
+optimization · performance case study — all under [`docs/`](docs/).
 
 ## Conventions
 

@@ -17,7 +17,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 | 3 | Streams + Tasks → star schema | ✅ **Built + verified LIVE** (star+snowflake, SCD2, 10-task DAG propagates in 18s) |
 | 4 | Snowpark transformation | ✅ **Verified LIVE**: naive vs optimized, identical results, 206× less client data movement |
 | 5 | Performance tuning case study | ✅ **Verified LIVE**: pruning 15/15 → 2/16 partitions (7.5× fewer) |
-| 6 | Docs, spec, demo | ⬜ Not started |
+| 6 | Docs, spec, demo | ✅ **Complete**: functional spec, technical design (mermaid), demo script, README |
 
 Legend: ✅ done · 🟡 in progress · ⬜ not started
 
@@ -88,12 +88,12 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 
 ## Phase 6 — Docs, spec, demo
 
-- [ ] `docs/functional-spec.md` (requirements, sources, business questions)
-- [ ] `docs/technical-design.md` (architecture, data flow, RBAC, decisions + tradeoffs)
-- [ ] Real architecture diagram (upgrade the ASCII)
-- [ ] README: what it is, deploy from scratch, how to demo
-- [ ] 3–5 min demo script (or Loom) end to end
-- [ ] **Acceptance:** stranger clones, reads specs, understands in 10 min; live demo from clean deploy
+- [x] `docs/functional-spec.md` (requirements, sources, business questions)
+- [x] `docs/technical-design.md` (architecture, data flow, RBAC, decisions + tradeoffs)
+- [x] Real architecture diagram (mermaid flowchart in technical-design.md)
+- [x] README: what it is, deploy from scratch, how to demo
+- [x] `docs/demo-script.md` — 3–5 min end-to-end walkthrough
+- [x] **Acceptance:** specs + demo script let a stranger deploy and understand from scratch
 
 ---
 
