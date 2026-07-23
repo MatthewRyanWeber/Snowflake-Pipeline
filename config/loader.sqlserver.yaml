@@ -1,0 +1,24 @@
+# Loader config using the LOCAL SQL Server as the relational source.
+# Trusted (Windows) auth — no password in the file. Build the source first:
+#   python scripts/csv_to_sqlserver.py --csv data/synthea/patients.csv --database HEALTH_SOURCE --table patients
+
+source:
+  type: sqlserver
+  conn_str: "DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;DATABASE=HEALTH_SOURCE;Trusted_Connection=yes;TrustServerCertificate=yes"
+
+snowflake:
+  connection: snowflake_pipeline
+  database: HEALTH_ANALYTICS
+  schema: RAW
+
+masking:
+  salt: snowflake-pipeline-synthetic
+
+tables:
+  - name: patients
+    target: PATIENTS_SQL_DEMO
+    hwm_column: patient_id
+    batch_size: 100
+    mask:
+      ssn: ssn
+      phone: phone

@@ -50,8 +50,13 @@ def main(argv=None) -> int:
     try:
         with FileLock():
             if args.dry_run:
-                source = _build_source(cfg)
-                results = run(source, _NullSink(), watermarks, tables, salt, dry_run=True)
+                # Dry-run still READS from the source (to report intended changes), so it
+                # must connect too — it just never writes.
+                source = _build_source(cfg).connect()
+                try:
+                    results = run(source, _NullSink(), watermarks, tables, salt, dry_run=True)
+                finally:
+                    source.close()
             else:
                 from .deps import check_live_dependencies
                 # Only require the SQL Server driver when the source actually needs it.
