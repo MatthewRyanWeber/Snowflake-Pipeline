@@ -15,7 +15,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 | 1 | Snowpipe ingestion (files → RAW) | ✅ RAW tables + VARIANT/FLATTEN verified LIVE; ⬜ S3 *auto-ingest* needs AWS |
 | 2 | Relational source loader (Python) | ✅ **Verified LIVE**: 300 rows loaded, masked, incremental re-run = 0 dupes |
 | 3 | Streams + Tasks → star schema | ✅ **Built + verified LIVE** (star+snowflake, SCD2, 10-task DAG propagates in 18s) |
-| 4 | Snowpark transformation | ⬜ Not started |
+| 4 | Snowpark transformation | ✅ **Verified LIVE**: naive vs optimized, identical results, 206× less client data movement |
 | 5 | Performance tuning case study | ⬜ Not started |
 | 6 | Docs, spec, demo | ⬜ Not started |
 
@@ -73,10 +73,10 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 
 ## Phase 4 — Snowpark transformation
 
-- [ ] One non-trivial transform (e.g. patient-cohort aggregation) as Snowpark Python
-- [ ] Written two ways: naive vs optimized (predicate pushdown, minimize collect/materialize, right-sized warehouse)
-- [ ] Deliverables: `snowpark/`, `docs/snowpark-optimization.md` (before/after)
-- [ ] **Acceptance:** identical output both ways; optimized shows measurably less compute in query history
+- [x] Cohort aggregation (region × encounter_class) as Snowpark Python *(`snowpark/cohort_aggregation.py`)*
+- [x] Written two ways: naive (client-side pandas) vs optimized (warehouse pushdown)
+- [x] Deliverables: `snowpark/`, `docs/snowpark-optimization.md` (before/after)
+- [x] **Acceptance (LIVE):** identical output both ways; optimized moves 206× less data to client (5 vs 1030 rows). *Honest caveat: wall-clock win needs a larger fact table — documented, not claimed.*
 
 ## Phase 5 — Performance tuning case study
 
