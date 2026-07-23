@@ -25,7 +25,9 @@ class FileSource:
     def fetch_batches(self, table: str, hwm_column: str, since, batch_size: int):
         with self.path.open(encoding="utf-8", newline="") as fh:
             rows = list(csv.DictReader(fh))
-        if hwm_column not in (rows[0].keys() if rows else []):
+        if not rows:
+            return  # empty file -> no batches (not an error)
+        if hwm_column not in rows[0].keys():
             raise ValueError(f"hwm_column {hwm_column!r} not in {self.path.name} columns")
 
         # Incremental filter + ordering, mirroring the SQL 'WHERE hwm > since ORDER BY hwm'.

@@ -129,6 +129,33 @@ def test_incremental_resumes_from_watermark(tmp_path):
 
 # --- file source (offline end-to-end) ---
 
+def test_watermark_preserves_native_int():
+    from loader.watermark import WatermarkStore
+    import tempfile, os
+    d = tempfile.mkdtemp()
+    p = Path(d) / "wm.json"
+    WatermarkStore(p).set("t", 100)
+    got = WatermarkStore(p).get("t")
+    assert got == 100 and isinstance(got, int)  # not the string "100"
+    os.remove(p)
+
+
+def test_masking_tolerates_non_string_value():
+    assert masking.mask_ssn(123456789) == "XXX-XX-6789"      # int, not str
+    assert masking.mask_ssn("") == "" and masking.mask_ssn(None) is None
+
+
+def test_load_table_rejects_injection_identifier(tmp_path):
+    from loader.pipeline import load_table
+    wm = WatermarkStore(tmp_path / "wm.json")
+    bad = {"name": "patients; DROP TABLE x", "hwm_column": "patient_id"}
+    try:
+        load_table(FakeSource([]), FakeSink(), wm, bad, salt="s")
+        assert False, "expected ValueError on unsafe identifier"
+    except ValueError:
+        pass
+
+
 def test_sqlite_source_reads_and_filters(tmp_path):
     import sqlite3
     from loader.source_sqlite import SqliteSource

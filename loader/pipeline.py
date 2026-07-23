@@ -5,11 +5,22 @@ Each committed batch advances the persisted high-water-mark, so a crash resumes 
 """
 
 import logging
+import re
 
 from .masking import mask_row
 from .watermark import WatermarkStore
 
 logger = logging.getLogger(__name__)
+
+# Table/column names are interpolated into SQL (identifiers can't be bound parameters),
+# so constrain them to a safe shape to prevent injection via a hostile config file.
+_IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$.]*$")
+
+
+def _check_identifier(kind: str, value) -> str:
+    if not isinstance(value, str) or not _IDENT_RE.match(value):
+        raise ValueError(f"unsafe {kind} identifier in config: {value!r}")
+    return value
 
 
 class LoadResult:
@@ -33,9 +44,9 @@ def load_table(source, sink, watermarks: WatermarkStore, table_cfg: dict,
 
     table_cfg keys: name, target (RAW table), hwm_column, batch_size, mask (col->policy).
     """
-    name = table_cfg["name"]
-    target = table_cfg.get("target", name)
-    hwm_column = table_cfg["hwm_column"]
+    name = _check_identifier("table name", table_cfg["name"])
+    target = _check_identifier("target", table_cfg.get("target", name))
+    hwm_column = _check_identifier("hwm_column", table_cfg["hwm_column"])
     batch_size = int(table_cfg.get("batch_size", 5000))
     column_policies = table_cfg.get("mask", {}) or {}
 
@@ -45,41 +56,36 @@ def load_table(source, sink, watermarks: WatermarkStore, table_cfg: dict,
     logger.info("load %s -> %s (hwm_column=%s, since=%s, dry_run=%s)",
                 name, target, hwm_column, since, dry_run)
 
-    max_seen = since
+    last_hwm = since
     for batch in source.fetch_batches(name, hwm_column, since, batch_size):
+        if not batch:
+            continue
         result.batches += 1
         result.rows_read += len(batch)
         masked = [mask_row(r, column_policies, salt) for r in batch]
 
-        # Track the batch's max HWM to checkpoint after a successful commit.
-        batch_max = max((r.get(hwm_column) for r in batch if r.get(hwm_column) is not None),
-                        default=max_seen)
-
         if dry_run:
-            # No writes. Report what would happen; leave the watermark untouched.
-            if result.batches == 1 and masked:
+            if result.batches == 1:
                 logger.info("[dry-run] sample masked row: %s", masked[0])
             logger.info("[dry-run] would write %d rows to %s (batch %d)",
                         len(masked), target, result.batches)
         else:
             written = sink.write(target, masked)
             result.rows_written += written
-            # Checkpoint only after the commit — order matters for crash-safety.
-            if batch_max is not None:
-                watermarks.set(name, batch_max)
-        max_seen = _max(max_seen, batch_max)
 
-    result.new_watermark = max_seen
+        # Rows are fetched ORDER BY hwm ASC, so the LAST row of the batch carries the
+        # batch's max HWM. Take it as-is (native type) — never compare stored-vs-native
+        # values client-side, which broke for numeric/timestamp keys. Checkpoint only
+        # after the commit above (crash-safe: a crash resumes from the last flushed hwm).
+        batch_hwm = batch[-1].get(hwm_column)
+        if batch_hwm is not None:
+            last_hwm = batch_hwm
+            if not dry_run:
+                watermarks.set(name, last_hwm)
+
+    result.new_watermark = last_hwm
     logger.info("done %s: %r", target, result)
     return result
-
-
-def _max(a, b):
-    if a is None:
-        return b
-    if b is None:
-        return a
-    return a if a >= b else b
 
 
 def run(source, sink, watermarks: WatermarkStore, tables: list[dict],

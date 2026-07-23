@@ -17,7 +17,7 @@ import logging
 import time
 
 from snowflake.snowpark import Session
-from snowflake.snowpark.functions import avg, col, count, count_distinct
+from snowflake.snowpark.functions import avg, count, count_distinct
 from snowflake.snowpark.functions import round as round_
 from snowflake.snowpark.functions import sum as sum_
 

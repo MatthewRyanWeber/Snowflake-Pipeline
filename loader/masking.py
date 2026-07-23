@@ -11,31 +11,40 @@ import hashlib
 DEFAULT_SALT = "snowflake-pipeline-synthetic"
 
 
-def mask_ssn(value: str | None) -> str | None:
+def mask_ssn(value) -> str | None:
     """123-45-6789 -> XXX-XX-6789 (keep last 4 for referential debugging)."""
-    if not value:
-        return value
-    digits = [c for c in value if c.isdigit()]
+    if value is None:
+        return None
+    s = str(value)                      # tolerate numeric DB columns, not just strings
+    if s == "":
+        return s
+    digits = [c for c in s if c.isdigit()]
     if len(digits) < 4:
         return "XXX-XX-XXXX"
     return "XXX-XX-" + "".join(digits[-4:])
 
 
-def mask_phone(value: str | None) -> str | None:
+def mask_phone(value) -> str | None:
     """Keep last 4 digits: (212) 555-1234 -> (XXX) XXX-1234."""
-    if not value:
-        return value
-    digits = [c for c in value if c.isdigit()]
+    if value is None:
+        return None
+    s = str(value)
+    if s == "":
+        return s
+    digits = [c for c in s if c.isdigit()]
     if len(digits) < 4:
         return "(XXX) XXX-XXXX"
     return "(XXX) XXX-" + "".join(digits[-4:])
 
 
-def mask_email(value: str | None) -> str | None:
+def mask_email(value) -> str | None:
     """a.person@example.com -> a****@example.com."""
-    if not value or "@" not in value:
-        return value
-    local, _, domain = value.partition("@")
+    if value is None:
+        return None
+    s = str(value)
+    if "@" not in s:
+        return s
+    local, _, domain = s.partition("@")
     head = local[0] if local else ""
     return f"{head}****@{domain}"
 

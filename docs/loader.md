@@ -71,7 +71,27 @@ Install live drivers first: `pip install -r requirements.txt`.
 `python -m pytest tests/ -q` — masking, watermark persistence + corruption-fails-loud,
 dry-run-writes-nothing, incremental-resume-from-watermark, file source ordering.
 
+## Known limitations & design notes (by design, not bugs)
+
+- **RAW is an at-least-once landing zone.** The watermark advances only after a batch commits,
+  so a crash *between* the commit and the watermark flush can re-append that batch's rows to
+  RAW on the next run. This is intentional landing-zone behavior: STAGING dedupes by natural
+  key (`ROW_NUMBER() … latest`), so duplicates never reach the marts. Exactly-once into RAW
+  would require a keyed MERGE, which fights the append-only landing design.
+- **`hwm_column` must be monotonic.** Incremental correctness relies on the source returning
+  rows `ORDER BY hwm ASC`; the loader takes the last row's value as the checkpoint (native
+  type, no client-side comparison). A non-increasing key can skip rows.
+- **File source loads the whole CSV into memory** (to sort it) — fine for the dev/offline
+  path; the SQL sources stream in batches server-side.
+- **Bulk-load scale.** The sink uses parameterized multi-row `INSERT` (the connector batches
+  `INSERT … VALUES` into one request). For very large loads, stage-and-`COPY` (à la
+  `scripts/load_internal_stage.py`) is faster; the loader targets correctness + masking on a
+  moderate relational feed.
+- **`TrustServerCertificate=yes`** in the SQL Server config skips TLS cert validation — fine
+  for a local instance, but use a trusted cert in production.
+
 ## Status
 
-Package + config + tests written; **15 tests green** and the offline dry-run works today.
-Live SQL Server → Snowflake path is unverified until the account exists.
+Verified live against account fjliqhb-of64443 via file, SQLite, **and a real local SQL Server
+2025** — 300 rows masked, incremental re-run = 0. **19 unit tests green** (incl. native-type
+watermark, injection-guard, non-string masking).

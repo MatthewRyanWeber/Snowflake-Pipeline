@@ -34,8 +34,17 @@ class WatermarkStore:
         return self._data.get(table)
 
     def set(self, table: str, value) -> None:
-        self._data[table] = None if value is None else str(value)
+        self._data[table] = self._normalize(value)
         self._flush()
+
+    @staticmethod
+    def _normalize(value):
+        # Preserve native JSON scalar types (int/float/str/bool) so numeric watermarks
+        # round-trip correctly; render date/datetime as ISO (sortable + JSON-safe).
+        if value is None or isinstance(value, (int, float, str, bool)):
+            return value
+        iso = getattr(value, "isoformat", None)
+        return iso() if callable(iso) else str(value)
 
     def _flush(self) -> None:
         # Atomic write: temp file + os.replace so a crash never leaves half-written state.

@@ -74,7 +74,7 @@ def main(argv=None) -> int:
         )
         cur.execute(copy_sql)
         loaded = cur.fetchall()
-        total = con.cursor().execute(f"SELECT COUNT(*) FROM {args.table}").fetchone()[0]
+        total = cur.execute(f"SELECT COUNT(*) FROM {args.table}").fetchone()[0]
         logger.info("COPY result rows: %s", loaded)
         logger.info("%s now has %d row(s)", args.table, total)
     finally:

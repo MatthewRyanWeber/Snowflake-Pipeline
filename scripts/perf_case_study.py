@@ -80,11 +80,14 @@ def main():
         if rnd["scanned"] and srt["scanned"]:
             logger.info("PRUNING WIN: sorted scans %s vs random %s partitions (%.1fx fewer)",
                         srt["scanned"], rnd["scanned"], rnd["scanned"] / max(srt["scanned"], 1))
-        # Cleanup the big tables to conserve storage.
-        cur.execute(f"DROP TABLE IF EXISTS {DB}.MARTS.FACT_BIG_RANDOM")
-        cur.execute(f"DROP TABLE IF EXISTS {DB}.MARTS.FACT_BIG_SORTED")
-        logger.info("dropped big tables (case study complete)")
     finally:
+        # Always drop the big tables, even if a build/measure step raised, so a failed
+        # run never leaves multi-GB tables behind.
+        for t in ("FACT_BIG_RANDOM", "FACT_BIG_SORTED"):
+            try:
+                cur.execute(f"DROP TABLE IF EXISTS {DB}.MARTS.{t}")
+            except Exception as exc:  # noqa: BLE001 - best-effort cleanup, log and move on
+                logger.warning("cleanup: could not drop %s: %s", t, exc)
         cur.close()
         con.close()
 
