@@ -34,7 +34,7 @@ dbt build --project-dir dbt      # snapshot + models + tests
 dbt docs generate --project-dir dbt && dbt docs serve --project-dir dbt   # lineage graph
 ```
 
-## Live result (account fjliqhb-of64443)
+## Live result (account the Snowflake account)
 
 ```
 1 snapshot, 6 table models, 20 data tests, 3 view models

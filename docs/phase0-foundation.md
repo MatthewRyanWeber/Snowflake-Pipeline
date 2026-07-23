@@ -61,4 +61,4 @@ The tool runs `sql/00_setup/*.sql` in numeric order and stops on the first error
 
 ## Status
 
-Verified live on account fjliqhb-of64443: full deploy + validation, idempotent re-run.
+Verified live on account the Snowflake account: full deploy + validation, idempotent re-run.

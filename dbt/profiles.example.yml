@@ -4,7 +4,7 @@ snowflake_pipeline:
   outputs:
     dev:
       type: snowflake
-      account: <org>-<account>       # e.g. fjliqhb-of64443
+      account: <org>-<account>       # e.g. myorg-myaccount
       user: <user>
       password: <password>           # or use key-pair / SSO auth
       role: PIPELINE_ROLE

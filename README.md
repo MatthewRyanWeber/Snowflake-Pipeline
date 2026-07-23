@@ -1,9 +1,12 @@
 # Snowflake Pipeline
 
-A governance-aware, portfolio-grade **Snowflake analytics pipeline** for **financial and
-operational analytics**. It ingests two sources into a raw layer, transforms them via
-Snowflake-native Streams + Tasks into a star schema with a **revenue-cycle fact** (charges,
-payments, payer mix, claim status), and exposes it for BI.
+A governance-aware, portfolio-grade **Snowflake data pipeline**. It **moves data** from
+source systems (SQL Server, Oracle, files, S3) into Snowflake — ingesting, masking PII, and
+loading it incrementally into a governed **RAW → STAGING → MARTS** dimensional model that
+downstream BI tools can query.
+
+**The app moves and structures data — it does not compute analytics.** Aggregation and
+reporting are left to the BI/query layer on top of the model.
 
 **Standalone / CLI only — no web interface.** Everything runs from Python command-line
 modules; orchestration is Snowflake-native (Snowpipe → Streams → Tasks), with GitHub Actions
@@ -12,23 +15,13 @@ for deploy + validation.
 > Data is fully synthetic — no real records. PII masking and governance controls are built
 > and demonstrated as if it were production data.
 
-## Demo
-
-[![15-second demo](docs/images/sizzle.gif)](docs/videos/snowflake-pipeline-sizzle.mp4)
-
-*15-second sizzle — click for the full 1080p video ([`docs/videos/`](docs/videos/snowflake-pipeline-sizzle.mp4)).*
-
 ## CLI in action
 
 Bulk load (SQL Server → Snowflake) with live progress + ETA:
 
 ![Loader progress](docs/images/cli-loader.png)
 
-Revenue-cycle reporting over the star schema:
-
-![Revenue report](docs/images/cli-report.png)
-
-End-to-end run (deploy → ingest → transform → validate):
+End-to-end run (deploy → ingest → transform → load):
 
 ![End to end](docs/images/cli-pipeline.png)
 
@@ -44,10 +37,10 @@ End-to-end run (deploy → ingest → transform → validate):
                                           STAGING.*  (cleansed, typed)
                                                    │  Tasks (scheduled DAG)
                                                    ▼
-                                          MARTS.*  (star schema: revenue fact + dims,
-                                                    incl. payer + one snowflaked dimension)
+                                          MARTS.*  (star schema: fact + dims,
+                                                    incl. one snowflaked dimension)
                                                    ▼
-                                          Revenue / BI analytics views
+                                          queried by downstream BI tools
 ```
 
 ## Layout
@@ -59,8 +52,7 @@ End-to-end run (deploy → ingest → transform → validate):
 | `sql/00_setup/` | Idempotent SnowSQL: role, warehouse, database, schemas. |
 | `sql/10_ingest/` | Stages, file formats, RAW tables, Snowpipe. |
 | `sql/30_transform/` | Streams, Tasks DAG, STAGING → MARTS star schema. |
-| `loader/` | Python batch loader for the relational (SQL Server) source. |
-| `snowpark/` | Snowpark DataFrame transform (naive vs. optimized). |
+| `loader/` | Python batch loader for relational sources (SQL Server, Oracle, SQLite, files). |
 | `scripts/` | `run_sql.py` (deploy), `run_pipeline.py` (end-to-end), loaders, data-quality, teardown. |
 | `config/` | Table lists, mappings, schedules (no secrets). |
 | `docs/` | Functional spec, technical design, tuning case study, diagrams. |
@@ -101,9 +93,8 @@ python -m scripts.load_internal_stage --file data/synthea/encounters.json --tabl
 # Build the star schema + Task DAG:
 python -m scripts.run_sql --dir sql/30_transform
 
-# Senior-signal demos:
-python -m snowpark.cohort_aggregation    # naive vs optimized pushdown
-python -m scripts.perf_case_study        # micro-partition pruning
+# Validate the load:
+python -m scripts.data_quality           # referential-integrity + masking checks
 ```
 
 `scripts/run_sql.py` is the single deploy tool (connector-based, cross-platform, no SnowSQL
@@ -111,8 +102,8 @@ install). Full walkthrough: [`docs/demo-script.md`](docs/demo-script.md).
 
 ## Docs
 
-Functional spec · technical design · data model · Snowpipe setup · loader · Snowpark
-optimization · performance case study — all under [`docs/`](docs/).
+Functional spec · technical design · data model · Snowpipe setup · loader · performance
+(storage/pruning) case study — all under [`docs/`](docs/).
 
 ## Conventions
 

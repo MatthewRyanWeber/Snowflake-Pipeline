@@ -33,14 +33,13 @@ and kept current by **Streams + a Task DAG**. `DIM_PATIENT` is **SCD Type 2**.
 | `DIM_DATE` | `date_key` (YYYYMMDD) | conformed calendar, generated 2023–2026 |
 | `DIM_PATIENT` | `patient_sk` (identity) | **SCD2**: `valid_from`/`valid_to`/`is_current` |
 | `DIM_PROVIDER` | `provider_sk` | conformed |
-| `DIM_PAYER` | `payer_sk` | **financial**: insurer responsible for the charge |
+| `DIM_PAYER` | `payer_sk` | payer (insurer) for the encounter |
 | `DIM_FACILITY` | `facility_sk` | → `DIM_LOCATION` (snowflake) |
 | `DIM_LOCATION` | `location_sk` | `city, state, region` |
 
-`FACT_ENCOUNTER` carries **revenue-cycle measures** — `total_charge`, `paid_amount`,
-`claim_status` — alongside the operational measures (`duration_minutes`, `observation_count`).
-Revenue views (`vw_revenue_by_payer`, `vw_revenue_by_region`, `vw_claim_status_exposure`)
-serve charged-vs-collected and collection-rate analytics.
+`FACT_ENCOUNTER` also carries billing fields moved from source — `total_charge`,
+`paid_amount`, `claim_status` — alongside `duration_minutes` and `observation_count`. These
+are landed values, not computed by the pipeline; aggregation is left to the BI/query layer.
 
 ## SCD Type 2 (patient)
 
@@ -78,7 +77,7 @@ t_ingest (root, stream-gated)  ->  CALL sp_ingest()       -- consume streams int
 the new keys; consuming the streams advances their offsets, which resets the WHEN gate.
 **Verified live:** a new record propagates root → dependent → `FACT_ENCOUNTER` in ~18s.
 
-## Live-verified counts (account fjliqhb-of64443, 300 patients / 1023 encounters)
+## Live-verified counts (300 patients / 1023 encounters)
 
 `FACT_ENCOUNTER` 1023 · `DIM_PATIENT` 300 current · `DIM_PROVIDER` 5 · `DIM_FACILITY` 3 ·
 `DIM_LOCATION` 3 (all Northeast region) · `DIM_DATE` 1461. Zero unmatched dimension keys on

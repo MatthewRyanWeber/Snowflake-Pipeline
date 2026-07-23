@@ -20,7 +20,7 @@ PY = sys.executable
 
 TRANSFORM_STEPS = [  # DDL + procedures + backfill (the scheduled DAG lives in 06_tasks.sql)
     "00_streams", "01_staging", "02_marts_dims", "03_marts_fact",
-    "04_procedures", "05_backfill", "07_analytics_views",
+    "04_procedures", "05_backfill",
 ]
 
 LOCAL_CONFIG = """source:

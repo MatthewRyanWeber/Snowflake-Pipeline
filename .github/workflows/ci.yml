@@ -24,7 +24,7 @@ jobs:
         run: python -m pytest tests/ -q
 
       - name: Compile scripts + loader
-        run: python -m compileall -q scripts loader snowpark
+        run: python -m compileall -q scripts loader
 
       - name: Loader offline dry-run (masking + flow, no DB)
         run: python -m loader --dry-run --config config/loader.sample.yaml

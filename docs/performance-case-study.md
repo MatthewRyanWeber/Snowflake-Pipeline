@@ -33,7 +33,7 @@ range. Here that's done by ordering on write (`CTAS … ORDER BY date_key`); in 
 equivalent is a **clustering key** (`ALTER TABLE … CLUSTER BY (date_key)`) maintained by
 Automatic Clustering.
 
-**Result (live, account fjliqhb-of64443, XSMALL warehouse).**
+**Result (live, account the Snowflake account, XSMALL warehouse).**
 
 | Table | Rows | Partitions total | Partitions scanned | Avg clustering depth |
 |---|---|---|---|---|

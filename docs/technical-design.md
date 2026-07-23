@@ -88,6 +88,5 @@ schedule, stream-gated) moves data STAGING → MARTS. `BI` reads `MARTS`.
 
 - **S3 Snowpipe auto-ingest** is built and documented but unverified (needs an AWS bucket +
   IAM). The `COPY`/VARIANT half is verified live via an internal stage.
-- **Snowpark wall-clock** win needs a larger fact table to show (data-movement win is proven).
 - SQL Server source itself is untested against a real instance (the load/mask/incremental
   logic is proven via the file source).

@@ -114,6 +114,6 @@ dry-run-writes-nothing, incremental-resume-from-watermark, file source ordering.
 
 ## Status
 
-Verified live against account fjliqhb-of64443 via file, SQLite, **and a real local SQL Server
+Verified live against account the Snowflake account via file, SQLite, **and a real local SQL Server
 2025** — 300 rows masked, incremental re-run = 0. **19 unit tests green** (incl. native-type
 watermark, injection-guard, non-string masking).

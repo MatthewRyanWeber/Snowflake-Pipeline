@@ -11,7 +11,7 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CONVENTIONS.md`](CON
 
 | Phase | Title | Status |
 |---|---|---|
-| 0 | Foundation | ✅ **Deployed + validated LIVE** on account fjliqhb-of64443 |
+| 0 | Foundation | ✅ **Deployed + validated LIVE** on account the Snowflake account |
 | 1 | Snowpipe ingestion (files → RAW) | ✅ RAW tables + VARIANT/FLATTEN verified LIVE; ⬜ S3 *auto-ingest* needs AWS |
 | 2 | Relational source loader (Python) | ✅ **Verified LIVE**: 300 rows loaded, masked, incremental re-run = 0 dupes |
 | 3 | Streams + Tasks → star schema | ✅ **Built + verified LIVE** (star+snowflake, SCD2, 10-task DAG propagates in 18s) |
@@ -57,7 +57,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - [x] Config-driven (table list, mappings); no secrets in code *(`config/loader.yaml` + offline `loader.sample.yaml`)*
 - [x] Deliverables: `loader/` package, `config/loader.yaml`, unit tests, `docs/loader.md`
 - [x] **Acceptance (offline):** `python -m loader --dry-run --config config/loader.sample.yaml` reports intended changes + masked sample, writes nothing — **verified**
-- [x] **Acceptance (live):** verified against account fjliqhb-of64443 — 300 rows masked, re-run = 0 (watermark). Proven via file, SQLite, **AND a real local SQL Server 2025** (`SqlServerSource` + pyodbc/Windows auth; `config/loader.sqlserver.yaml`, `scripts/csv_to_sqlserver.py`).
+- [x] **Acceptance (live):** verified against account the Snowflake account — 300 rows masked, re-run = 0 (watermark). Proven via file, SQLite, **AND a real local SQL Server 2025** (`SqlServerSource` + pyodbc/Windows auth; `config/loader.sqlserver.yaml`, `scripts/csv_to_sqlserver.py`).
 
 ## Phase 3 — Streams + Tasks → star schema (centerpiece)
 
@@ -115,7 +115,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - 2026-07-22 — Phase 0 SQL + `deploy.sh` written, dry-run verified. `.gitattributes` added (LF for WSL2).
 - 2026-07-22 — **Phase 1 pre-built offline** (no live Snowflake yet): generator + tests (4 green), `sql/10_ingest/` DDL, `manual/` copy+flatten, `docs/snowpipe-setup.md`, committed sample data. `deploy.sh` generalized with `--dir`. Live deploy + AWS S3/SQS wiring pending.
 - 2026-07-22 — **Phase 2 built** (`loader/`, 15 tests green, offline dry-run works).
-- 2026-07-22 — **LIVE account connected** (fjliqhb-of64443, ACCOUNTADMIN, AWS_CA_CENTRAL_1). Creds in `~/.snowflake/connections.toml` (outside repo). Added `scripts/run_sql.py` (connector-based deploy, no SnowSQL needed) + `scripts/load_internal_stage.py` (no-AWS PUT+COPY). **Verified LIVE:** Phase 0 full deploy; Phase 1 RAW tables + VARIANT/FLATTEN (1023 encounters); Phase 2 loader (300 patients, masked, incremental). Data via `data/synthea` (gitignored) + `config/loader.local.yaml` (gitignored).
+- 2026-07-22 — **LIVE account connected** (the Snowflake account, ACCOUNTADMIN, AWS_CA_CENTRAL_1). Creds in `~/.snowflake/connections.toml` (outside repo). Added `scripts/run_sql.py` (connector-based deploy, no SnowSQL needed) + `scripts/load_internal_stage.py` (no-AWS PUT+COPY). **Verified LIVE:** Phase 0 full deploy; Phase 1 RAW tables + VARIANT/FLATTEN (1023 encounters); Phase 2 loader (300 patients, masked, incremental). Data via `data/synthea` (gitignored) + `config/loader.local.yaml` (gitignored).
 - 2026-07-23 — **Taste refactor (5/5 pass).** Killed transform triplication: flatten/dedup in staging views, region/SCD2/fact-join in 2 stored procedures (`sp_ingest`, `sp_build_marts`) called by both backfill and tasks. Collapsed 10-task DAG → 2 (root `t_ingest` → `t_build_marts`); `run_sql.py` got a real `$$`-aware statement splitter. Removed `deploy.sh` (one deploy tool, no drift). Unified CLIs via `scripts/_cli.py` (shared `--connection/--database/--config`, single connection source) + `docs/configuration.md`. Loader retry+timeouts on connect. Removed positional `$1..$11` CSV coupling (MATCH_BY_COLUMN_NAME). All verified live: backfill idempotent, DAG 18s propagation, full run_pipeline 12/12, CI green, 19 tests.
 - 2026-07-23 — **Hardening audit (harsh self-review).** Fixed: watermark corruption for numeric/timestamp HWM (client-side lexicographic compare → now takes last ASC row, native type); watermark type drift (str-coercion → native/ISO); masking crash on non-string DB values; file-source empty-file crash; SQL-injection surface (identifier allowlist on table/column names); perf-study storage leak (drop in finally); cursor leak; dead import. Documented at-least-once landing semantics + other caveats in docs/loader.md. 19 tests green; SQL Server + Snowpark re-verified live.
 - 2026-07-23 — **Real SQL Server verified LIVE.** Local SQL Server 2025 (default instance, Windows auth). `scripts/csv_to_sqlserver.py` seeds HEALTH_SOURCE.dbo.patients (300 rows); `loader/source_sqlserver.py` via pyodbc/Driver 18 → RAW, masked, incremental (re-run=0). Fixed a real bug: dry-run never connected the source (only file source, which opens lazily, had worked). SQL Server source gap CLOSED — only AWS S3 auto-ingest remains.

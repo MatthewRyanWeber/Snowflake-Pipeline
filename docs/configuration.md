@@ -20,7 +20,7 @@ The *name* points at a credential block. The credentials themselves are never in
 |---|---|---|
 | `config/pipeline.conf` | yes (no secrets) | Object **names** (role, warehouse, DB, schemas, S3) + `SF_CONNECTION`. Consumed by `run_sql.py` for `&{var}` substitution and by `_cli` for the default connection. |
 | `config/loader.yaml` (+ `*.local.yaml`, `loader.sqlite.yaml`, `loader.sqlserver.yaml`) | yes (no secrets) | The **loader**: source type + tables + masking. References the connection by name under `snowflake.connection`. |
-| `~/.snowflake/connections.toml` | **no** (home dir) | Snowflake **credentials** for the Python connector + Snowpark, keyed by connection name. |
+| `~/.snowflake/connections.toml` | **no** (home dir) | Snowflake **credentials** for the Python connector, keyed by connection name. |
 | `~/.dbt/profiles.yml` | **no** (home dir) | Snowflake **credentials** for dbt (`dbt/profiles.example.yml` is the committed template). |
 
 ## Rule

@@ -69,15 +69,15 @@ EXECUTE TASK STAGING.T_STAGE_PATIENTS;   -- root; dependents cascade
 SELECT COUNT(*) FROM MARTS.FACT_ENCOUNTER;   -- grows after the DAG runs
 ```
 
-## 6. Senior signals (45s)
+## 6. Throughput + validation (45s)
 
 ```bash
-python -m snowpark.cohort_aggregation     # naive vs optimized: 206x less client data movement
-python -m scripts.perf_case_study         # pruning: 15/15 -> 2/16 partitions scanned
+python -m scripts.data_quality            # referential-integrity + masking checks
+python -m scripts.perf_case_study         # storage tuning: 15/15 -> 2/16 partitions scanned
 ```
 
-"Snowpark pushes the aggregation into the warehouse; the tuning study shows micro-partition
-pruning cut partitions scanned 7.5×."
+"The load runs at ~2,600 rows/s via bulk COPY; data-quality gates the load; the tuning study
+shows micro-partition pruning cut partitions scanned 7.5×."
 
 ## 7. Close (15s)
 

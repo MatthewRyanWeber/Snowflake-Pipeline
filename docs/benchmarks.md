@@ -1,7 +1,7 @@
 # Benchmarks — full-volume timed run
 
 End-to-end run using **everything in the SQL database** (all patients), on the live account
-`fjliqhb-of64443` (XSMALL warehouse), local SQL Server 2025 source, Python connector.
+`the Snowflake account` (XSMALL warehouse), local SQL Server 2025 source, Python connector.
 
 Dataset: **100,000 patients**, **349,821 encounters**, **1,225,569 observations**.
 
