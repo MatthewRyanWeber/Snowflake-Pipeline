@@ -54,7 +54,9 @@ def main(argv=None) -> int:
                 results = run(source, _NullSink(), watermarks, tables, salt, dry_run=True)
             else:
                 from .deps import check_live_dependencies
-                check_live_dependencies(require_source=True)
+                # Only require the SQL Server driver when the source actually needs it.
+                needs_odbc = cfg.get("source", {}).get("type", "sqlserver") == "sqlserver"
+                check_live_dependencies(require_source=needs_odbc)
                 from .sink_snowflake import SnowflakeSink
 
                 source = _build_source(cfg)

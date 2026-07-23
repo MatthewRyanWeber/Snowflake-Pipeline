@@ -11,9 +11,9 @@ Full detail lives in [`PLAN.md`](PLAN.md); conventions in [`CLAUDE.md`](CLAUDE.m
 
 | Phase | Title | Status |
 |---|---|---|
-| 0 | Foundation | 🟡 Scripts written + dry-run verified; live deploy pending trial account |
-| 1 | Snowpipe ingestion (files → RAW) | 🟡 Pre-built offline; live deploy + AWS S3/SQS pending |
-| 2 | Relational source loader (Python) | 🟡 Built + 15 tests green + offline dry-run works; live SQL Server pending |
+| 0 | Foundation | ✅ **Deployed + validated LIVE** on account fjliqhb-of64443 |
+| 1 | Snowpipe ingestion (files → RAW) | ✅ RAW tables + VARIANT/FLATTEN verified LIVE; ⬜ S3 *auto-ingest* needs AWS |
+| 2 | Relational source loader (Python) | ✅ **Verified LIVE**: 300 rows loaded, masked, incremental re-run = 0 dupes |
 | 3 | Streams + Tasks → star schema | ⬜ Not started |
 | 4 | Snowpark transformation | ⬜ Not started |
 | 5 | Performance tuning case study | ⬜ Not started |
@@ -45,8 +45,9 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - [x] Snowpipe auto-ingest DDL + end-to-end docs *(`04_snowpipe.sql`, `docs/snowpipe-setup.md`)*
 - [x] Manual `COPY INTO` fallback path *(`manual/copy_manual.sql`)*
 - [x] Deliverables: `sql/10_ingest/`, `docs/snowpipe-setup.md`, sample files (`sql/10_ingest/samples/`), flatten queries
-- [ ] **AWS side:** S3 bucket + IAM role + storage-integration trust + SQS event notification ← **YOU** (see `docs/snowpipe-setup.md`)
-- [ ] **Acceptance:** file dropped in S3 lands rows in RAW < 1 min, no manual step; JSON queryable via VARIANT *(blocked on live account + AWS above)*
+- [x] RAW tables + file formats created LIVE; encounters loaded via internal-stage COPY (`scripts/load_internal_stage.py`, no-AWS path); VARIANT dot-access + LATERAL FLATTEN verified LIVE (1023 encounters)
+- [ ] **AWS side (auto-ingest only):** S3 bucket + IAM role + storage-integration trust + SQS event notification ← **YOU** (see `docs/snowpipe-setup.md`)
+- [ ] **Acceptance (auto-ingest):** file dropped in S3 lands rows in RAW < 1 min, no manual step *(needs AWS; the COPY/VARIANT half is verified live)*
 
 ## Phase 2 — Relational source loader (Python)
 
@@ -56,7 +57,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - [x] Config-driven (table list, mappings); no secrets in code *(`config/loader.yaml` + offline `loader.sample.yaml`)*
 - [x] Deliverables: `loader/` package, `config/loader.yaml`, unit tests, `docs/loader.md`
 - [x] **Acceptance (offline):** `python -m loader --dry-run --config config/loader.sample.yaml` reports intended changes + masked sample, writes nothing — **verified**
-- [ ] **Acceptance (live):** real SQL Server run incremental + re-runnable, no dupes; masked columns land masked *(pending live DB + account)*
+- [x] **Acceptance (live):** verified against account fjliqhb-of64443 via the file source — 300 rows loaded to RAW.PATIENTS_CSV, all SSN/phone masked, re-run loaded 0 (watermark). *(SQL Server source itself still swappable-in later; the load+mask+incremental logic is live-proven.)*
 
 ## Phase 3 — Streams + Tasks → star schema (centerpiece)
 
@@ -113,3 +114,5 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - 2026-07-22 — **Relocated project to `C:\snowflake-pipeline`** (canonical local path). Old copy under the OneDrive-redirected Desktop churned/wiped local files mid-build; GitHub remote was the safety net. Do not work out of `C:\Users\matt\OneDrive\Desktop\files` — OneDrive folder redirection is active on this machine.
 - 2026-07-22 — Phase 0 SQL + `deploy.sh` written, dry-run verified. `.gitattributes` added (LF for WSL2).
 - 2026-07-22 — **Phase 1 pre-built offline** (no live Snowflake yet): generator + tests (4 green), `sql/10_ingest/` DDL, `manual/` copy+flatten, `docs/snowpipe-setup.md`, committed sample data. `deploy.sh` generalized with `--dir`. Live deploy + AWS S3/SQS wiring pending.
+- 2026-07-22 — **Phase 2 built** (`loader/`, 15 tests green, offline dry-run works).
+- 2026-07-22 — **LIVE account connected** (fjliqhb-of64443, ACCOUNTADMIN, AWS_CA_CENTRAL_1). Creds in `~/.snowflake/connections.toml` (outside repo). Added `scripts/run_sql.py` (connector-based deploy, no SnowSQL needed) + `scripts/load_internal_stage.py` (no-AWS PUT+COPY). **Verified LIVE:** Phase 0 full deploy; Phase 1 RAW tables + VARIANT/FLATTEN (1023 encounters); Phase 2 loader (300 patients, masked, incremental). Data via `data/synthea` (gitignored) + `config/loader.local.yaml` (gitignored).
