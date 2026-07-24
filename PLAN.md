@@ -5,7 +5,7 @@
 > pieces mentioned below (Snowpark aggregation, reporting/BI views) were intentionally
 > removed; the pipeline moves and structures data, and analytics is left to the BI layer.
 
-**Purpose:** A portfolio-grade, governance-aware Snowflake data pipeline whose features map
+**Purpose:** A governance-aware Snowflake data pipeline whose features map
 onto a *Sr Snowflake Data Engineer* JD (NYC). Built so you can demo a real, running solution
 and speak to the native-object bullets in an interview.
 

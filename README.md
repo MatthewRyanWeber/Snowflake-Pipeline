@@ -1,6 +1,6 @@
 # Snowflake Pipeline
 
-A portfolio-grade **fully-in-Snowflake, multi-source data-movement pipeline**. It **moves data**
+A **fully-in-Snowflake, multi-source data-movement pipeline**. It **moves data**
 from many source systems (SQL Server, PostgreSQL, MySQL, Oracle, SQLite, REST APIs, Excel,
 Parquet, CSV, S3) into Snowflake, then does **everything else natively inside Snowflake**:
 transform, orchestration, and audit. The only external component is the connector that extracts
