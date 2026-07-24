@@ -16,9 +16,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Unit tests + offline dry-run need only pyyaml + pytest (no Snowflake driver).
+      # Offline tests need pyyaml + pytest plus the file/REST source drivers exercised by the
+      # suite (Excel, Parquet, REST). No Snowflake/DB driver is required for offline CI; the
+      # SQL sources (Postgres/MySQL/etc.) are verified separately against live databases.
       - name: Install test deps
-        run: pip install pyyaml pytest
+        run: pip install pyyaml pytest openpyxl pyarrow requests
 
       - name: Unit tests
         run: python -m pytest tests/ -q
