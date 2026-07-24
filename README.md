@@ -51,7 +51,7 @@ is verified via an internal stage.
 
 [![15-second demo](docs/images/sizzle.gif)](docs/videos/snowflake-pipeline-sizzle.mp4)
 
-*15-second overview — click for the full 1080p video ([`docs/videos/`](docs/videos/snowflake-pipeline-sizzle.mp4)).*
+*15-second narrated overview. The preview above is silent; click for the 1080p [video with sound](docs/videos/snowflake-pipeline-sizzle.mp4).*
 
 ## Native Snowflake objects
 
