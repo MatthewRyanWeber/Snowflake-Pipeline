@@ -9,6 +9,8 @@ import csv
 import logging
 from pathlib import Path
 
+from .ordering import hwm_gt, hwm_key
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,9 +33,9 @@ class FileSource:
             raise ValueError(f"hwm_column {hwm_column!r} not in {self.path.name} columns")
 
         # Incremental filter + ordering, mirroring the SQL 'WHERE hwm > since ORDER BY hwm'.
-        rows.sort(key=lambda r: r[hwm_column])
+        rows.sort(key=lambda r: hwm_key(r[hwm_column]))
         if since is not None:
-            rows = [r for r in rows if str(r[hwm_column]) > str(since)]
+            rows = [r for r in rows if hwm_gt(r[hwm_column], since)]
 
         for i in range(0, len(rows), batch_size):
             yield rows[i:i + batch_size]
@@ -45,7 +47,7 @@ class FileSource:
             return 0
         if since is None:
             return len(rows)
-        return sum(1 for r in rows if str(r[hwm_column]) > str(since))
+        return sum(1 for r in rows if hwm_gt(r[hwm_column], since))
 
     def close(self):
         pass

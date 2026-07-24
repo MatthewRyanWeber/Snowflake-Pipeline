@@ -3,6 +3,10 @@
 The file is sorted by the high-water-mark and filtered with Arrow compute, then yielded in
 batch_size slices — so incremental checkpointing stays correct even if the file isn't pre-sorted.
 Same fetch_batches / count contract as the other sources ('table' is informational here).
+
+Bounded-memory by design: a global sort for safe checkpointing means the file is read whole
+(as a compact Arrow table), so this suits data-lake extract files, not unbounded streams — the
+DB sources cover those with server-side cursors.
 """
 
 import logging

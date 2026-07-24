@@ -127,6 +127,36 @@ def test_incremental_resumes_from_watermark(tmp_path):
     assert len(sink.written) - first == 2
 
 
+def test_checkpoint_records_rows_and_completion(tmp_path):
+    wm = WatermarkStore(tmp_path / "wm.json")
+    cfg = [{"name": "patients", "hwm_column": "patient_id", "batch_size": 2}]
+    run(FakeSource(_rows(5)), FakeSink(), wm, cfg, salt="s")
+    cp = wm.checkpoint("patients")
+    assert cp["rows"] == 5                       # cumulative rows loaded, tracked per batch
+    assert cp["status"] == "complete"            # ran to the end
+    assert cp["hwm"] == "PAT-000005"             # resume cursor at the last row
+    assert "updated_at" in cp
+
+
+def test_restart_reset_clears_checkpoint(tmp_path):
+    # A fresh WatermarkStore instance re-reads the file, proving reset persisted to disk.
+    p = tmp_path / "wm.json"
+    wm = WatermarkStore(p)
+    run(FakeSource(_rows(3)), FakeSink(), wm, [{"name": "patients", "hwm_column": "patient_id"}], salt="s")
+    assert WatermarkStore(p).get("patients") == "PAT-000003"
+    wm.reset("patients")
+    assert WatermarkStore(p).get("patients") is None   # next run reloads from scratch
+
+
+def test_legacy_scalar_checkpoint_still_resumes(tmp_path):
+    # A watermarks.json from an older build stored a bare scalar; it must still resume.
+    p = tmp_path / "wm.json"
+    p.write_text('{"patients": "PAT-000007"}', encoding="utf-8")
+    wm = WatermarkStore(p)
+    assert wm.get("patients") == "PAT-000007"
+    assert wm.checkpoint("patients") == {"hwm": "PAT-000007"}
+
+
 # --- file source (offline end-to-end) ---
 
 def test_progress_estimates_eta():

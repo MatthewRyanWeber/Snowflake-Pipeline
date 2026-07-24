@@ -60,8 +60,9 @@ class RestSource:
             offset += batch_size
 
     def count(self, table: str, hwm_column: str, since):
-        # Best-effort: read an X-Total-Count header if the API sets one; else unknown (None),
-        # which just drops the % bar to count-only. Never fabricate a total.
+        # Contract: count() returns an int, or None when a source cannot cheaply determine a
+        # total. Here: read an X-Total-Count header if the API sets one, else None (the progress
+        # bar drops to count-only). Never fabricate a total.
         import requests
 
         resp = requests.get(f"{self.base_url}/{table}",

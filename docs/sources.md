@@ -5,6 +5,13 @@ The loader extracts from any source that implements one small contract — `conn
 switching a source is a `source.type` change in config, not a code change**. Every source is
 incremental (high-water-mark) and checkpointed: a crash resumes from the last committed batch.
 
+`count()` returns an `int`, or `None` when a source cannot cheaply determine a total (e.g. a
+REST API with no total-count header); the progress bar then falls back to count-only. The five
+relational sources share one base (`loader/source_sql.py`) and stream rows through a server-side
+cursor; the file sources (CSV, Excel, Parquet) are bounded-memory by design — they read the
+whole extract to sort by the high-water-mark, which is what keeps incremental checkpointing
+correct when the file is not pre-sorted.
+
 | `source.type` | Backend | Driver | Streaming | Status | Example config |
 |---|---|---|---|---|---|
 | `sqlserver` | SQL Server | pyodbc | server cursor | verified live | `config/loader.sqlserver.yaml` |

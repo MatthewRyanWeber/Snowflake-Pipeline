@@ -95,6 +95,31 @@ checkpointed. Full matrix and the live-Docker repro steps: [`docs/sources.md`](d
 python -m loader --config config/loader.postgres.yaml     # --dry-run to preview
 ```
 
+## Checkpointing & resume
+
+Imports are checkpointed per batch and resume automatically. After every committed batch the
+loader records that table's checkpoint to `state/watermarks.json`: the high-water-mark reached
+(the resume cursor), rows loaded so far, and a status. A crash at row 10,000 of 11,000 resumes
+from 10,001 on the next run, never reloading committed rows and never skipping uncommitted ones.
+
+```bash
+python -m loader --config config/loader.postgres.yaml           # resumes from the last checkpoint
+python -m loader --config config/loader.postgres.yaml --status   # show per-table checkpoint, no load
+python -m loader --config config/loader.postgres.yaml --restart  # ignore checkpoint, reload from scratch
+```
+
+`--status` prints where each table stands:
+
+```
+table                    status             rows  hwm                  updated_at
+----------------------------------------------------------------------------------------
+patients                 in_progress        8000  12345                2026-07-24T02:03:51+00:00
+```
+
+A normal run logs its resume plan up front (`resume patients from patient_id=12345, 8000 rows
+already loaded`). The checkpoint write is atomic (temp file + `os.replace`), so a crash never
+leaves half-written state, and a corrupt state file fails loud rather than silently reloading.
+
 ## PII masking & access control (native Snowflake)
 
 As part of the load, the pipeline configures Snowflake's native controls so PII is **masked by

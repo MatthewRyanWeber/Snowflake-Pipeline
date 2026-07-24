@@ -67,6 +67,8 @@ def load_table(source, sink, watermarks: WatermarkStore, table_cfg: dict,
     logger.info("load %s -> %s (hwm_column=%s, since=%s, total=%s, dry_run=%s)",
                 name, target, hwm_column, since, total, dry_run)
     progress = Progress(total, label=f"{name}->{target}")
+    if not dry_run:
+        watermarks.begin(name)  # mark in_progress before the first batch, so an early crash shows
 
     last_hwm = since
     for batch in source.fetch_batches(name, hwm_column, since, batch_size):
@@ -76,27 +78,29 @@ def load_table(source, sink, watermarks: WatermarkStore, table_cfg: dict,
         result.rows_read += len(batch)
         masked = [mask_row(r, column_policies, salt) for r in batch]
 
+        # Rows are fetched ORDER BY hwm ASC, so the LAST row of the batch carries the batch's
+        # max HWM. Take it as-is (native type) — never compare stored-vs-native values
+        # client-side, which broke for numeric/timestamp keys.
+        batch_hwm = batch[-1].get(hwm_column)
+        if batch_hwm is not None:
+            last_hwm = batch_hwm
+
         if dry_run:
             if result.batches == 1:
                 logger.info("[dry-run] sample masked row: %s", masked[0])
         else:
             written = sink.write(target, masked)
             result.rows_written += written
+            # Checkpoint only AFTER the commit above: move the cursor and add the rows just
+            # loaded. Crash-safe — a crash resumes from the last flushed checkpoint.
+            watermarks.advance(name, last_hwm, written)
 
         progress.update(len(batch))
 
-        # Rows are fetched ORDER BY hwm ASC, so the LAST row of the batch carries the
-        # batch's max HWM. Take it as-is (native type) — never compare stored-vs-native
-        # values client-side, which broke for numeric/timestamp keys. Checkpoint only
-        # after the commit above (crash-safe: a crash resumes from the last flushed hwm).
-        batch_hwm = batch[-1].get(hwm_column)
-        if batch_hwm is not None:
-            last_hwm = batch_hwm
-            if not dry_run:
-                watermarks.set(name, last_hwm)
-
     if result.batches:
         progress.finish()
+    if not dry_run:
+        watermarks.complete(name)  # ran to the end: this table is fully caught up
     result.new_watermark = last_hwm
     logger.info("done %s: %r", target, result)
     return result

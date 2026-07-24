@@ -3,10 +3,16 @@
 The 'table' names the worksheet (falls back to the active sheet); the first row is the header.
 Rows are filtered by the high-water-mark and ordered ascending, mirroring the SQL sources, so
 incremental checkpointing stays correct. Same fetch_batches / count contract as the DB sources.
+
+Bounded-memory by design: a worksheet is read whole and sorted in memory (openpyxl gives no
+sorted server-side cursor), so this suits reference/export files, not billion-row streams — the
+DB sources cover those with server-side cursors.
 """
 
 import logging
 from pathlib import Path
+
+from .ordering import hwm_gt, hwm_key
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +48,9 @@ class ExcelSource:
             return
         if hwm_column not in rows[0]:
             raise ValueError(f"hwm_column {hwm_column!r} not in sheet {table!r} columns")
-        rows.sort(key=lambda r: r[hwm_column])
+        rows.sort(key=lambda r: hwm_key(r[hwm_column]))
         if since is not None:
-            rows = [r for r in rows if str(r[hwm_column]) > str(since)]
+            rows = [r for r in rows if hwm_gt(r[hwm_column], since)]
         for i in range(0, len(rows), batch_size):
             yield rows[i:i + batch_size]
 
@@ -54,7 +60,7 @@ class ExcelSource:
             return 0
         if since is None:
             return len(rows)
-        return sum(1 for r in rows if str(r[hwm_column]) > str(since))
+        return sum(1 for r in rows if hwm_gt(r[hwm_column], since))
 
     def close(self):
         pass

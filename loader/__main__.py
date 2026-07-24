@@ -43,6 +43,10 @@ def main(argv=None) -> int:
     p.add_argument("--state", type=Path, default=Path("state/watermarks.json"))
     p.add_argument("--max-workers", type=int, default=8, help="parallel table-load workers")
     p.add_argument("--no-parallel", action="store_true", help="load tables sequentially")
+    p.add_argument("--restart", action="store_true",
+                   help="ignore saved checkpoints and reload the target table(s) from scratch")
+    p.add_argument("--status", action="store_true",
+                   help="print the resume checkpoint for each table and exit (no load)")
     p.add_argument("--verbose", action="store_true")
     p.add_argument("--version", action="version", version=f"loader {__version__}")
     args = p.parse_args(argv)
@@ -69,6 +73,19 @@ def main(argv=None) -> int:
 
     # Build source/sink lazily; --dry-run needs neither a live sink nor its driver.
     watermarks = WatermarkStore(args.state)
+
+    # --status just reports the checkpoint and exits — no lock, no connection, no load.
+    if args.status:
+        _print_status(tables, watermarks)
+        return 0
+
+    # --restart clears the checkpoint(s) so this run reloads from scratch.
+    if args.restart:
+        for t in tables:
+            watermarks.reset(t["name"])
+            logger.info("restart: cleared checkpoint for %s", t["name"])
+    elif not args.dry_run:
+        _log_resume_plan(tables, watermarks)
 
     try:
         with FileLock():
@@ -120,6 +137,28 @@ def main(argv=None) -> int:
                 len(results), total_read, total_written,
                 " (dry-run)" if args.dry_run else "")
     return 0
+
+
+def _log_resume_plan(tables, watermarks) -> None:
+    """Say, per table, whether this run resumes from a checkpoint or starts fresh."""
+    for t in tables:
+        cp = watermarks.checkpoint(t["name"])
+        if cp and cp.get("hwm") is not None:
+            note = " (last run interrupted)" if cp.get("status") == "in_progress" else ""
+            logger.info("resume %s from %s=%s, %s rows already loaded%s",
+                        t["name"], t["hwm_column"], cp["hwm"], cp.get("rows", 0), note)
+        else:
+            logger.info("fresh load: %s (no checkpoint)", t["name"])
+
+
+def _print_status(tables, watermarks) -> None:
+    """Print the resume checkpoint for each configured table (for `--status`)."""
+    print(f"{'table':<24} {'status':<12} {'rows':>10}  {'hwm':<20} updated_at")
+    print("-" * 88)
+    for t in tables:
+        cp = watermarks.checkpoint(t["name"]) or {}
+        print(f"{t['name']:<24} {cp.get('status', 'none'):<12} {cp.get('rows', 0):>10}  "
+              f"{str(cp.get('hwm', '-')):<20} {cp.get('updated_at', '-')}")
 
 
 def _build_source(cfg: dict):

@@ -67,6 +67,32 @@ def test_excel_batching(tmp_path):
     assert [len(b) for b in batches] == [2, 2]
 
 
+def test_excel_numeric_hwm_crosses_digit_boundary(tmp_path):
+    # Regression: string compare made "10" <= "9", silently dropping ids past 9 on resume.
+    rows = [{"id": i, "ts": i} for i in [7, 8, 9, 10, 11, 12]]
+    p = tmp_path / "boundary.xlsx"
+    _write_xlsx(p, rows)
+    src = ExcelSource(str(p)).connect()
+    assert src.count("records", "ts", 9) == 3
+    inc = _flatten(src.fetch_batches("records", "ts", 9, batch_size=10))
+    assert [r["id"] for r in inc] == [10, 11, 12]  # not [] as the string-compare bug gave
+
+
+def test_file_source_numeric_hwm_crosses_digit_boundary(tmp_path):
+    import csv
+    from loader.source_file import FileSource
+    p = tmp_path / "boundary.csv"
+    with p.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["id"])
+        w.writeheader()
+        for i in [7, 8, 9, 10, 11, 12]:
+            w.writerow({"id": i})
+    src = FileSource(p).connect()
+    assert src.count("p", "id", 9) == 3
+    got = _flatten(src.fetch_batches("p", "id", 9, batch_size=10))
+    assert [int(r["id"]) for r in got] == [10, 11, 12]
+
+
 # --- Parquet ---
 
 def _write_parquet(path, rows):
